@@ -249,3 +249,17 @@ def f():
     Assert.match(result.output, /generate\.py:8:0: error: wrong indentation type/);
     Assert.doesNotMatch(result.output, /generate\.py:3:/);
 });
+
+test('alignment spaces after tabs are allowed', () => {
+    const result = lintRepo(gibRepo({
+        '.editorconfig': `root = true
+[*]
+indent_style = tab
+`,
+        'align.py': `def f():
+	return call(first,
+	            second)
+`
+    }));
+    Assert.equal(result.status, 0, result.output);
+});

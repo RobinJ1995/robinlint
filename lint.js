@@ -10,6 +10,7 @@ const ACTION_DIR = __dirname;
 const AST_GREP = Path.join(ACTION_DIR, 'node_modules', '.bin', 'ast-grep');
 const EDITORCONFIG_CHECKER = Path.join(ACTION_DIR, 'node_modules', '.bin', 'editorconfig-checker');
 const EDITORCONFIG_CHECKER_VERSION = 'v4.0.2';
+const EDITORCONFIG_CHECKER_CONFIG = Path.join(ACTION_DIR, 'editorconfig-checker.json');
 const EDITORCONFIG_EXEMPT_CONFIG = Path.join(ACTION_DIR, 'editorconfig-exempt', 'sgconfig.yml');
 const INDENTATION_ERROR = /^wrong (indentation type|indent style|amount of left-padding)/;
 
@@ -103,7 +104,7 @@ const checkEditorconfig = (files, root) => {
     const exemptRanges = linesInsideCommentsAndStrings(files, root);
     const editorconfigProcess = spawnSync(
         EDITORCONFIG_CHECKER,
-        ['-no-color', '-format', 'gcc', ...files],
+        ['-config', EDITORCONFIG_CHECKER_CONFIG, '-no-color', '-format', 'gcc', ...files],
         {
             cwd: root,
             encoding: 'utf8',
