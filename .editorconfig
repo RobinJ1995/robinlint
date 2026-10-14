@@ -16,3 +16,7 @@ indent_style = unset
 indent_size = unset
 insert_final_newline = unset
 trim_trailing_whitespace = unset
+
+[*.feature]
+indent_style = unset
+indent_size = unset

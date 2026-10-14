@@ -308,3 +308,23 @@ body {
     }));
     Assert.equal(result.status, 0, result.output);
 });
+
+test('feature files may use any indentation under the default .editorconfig', () => {
+    const result = lintRepo(gibRepo({
+        'login.feature': `Feature: Login
+	Scenario: wrong password
+   Given a user
+     When they log in with the wrong password
+`
+    }));
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('feature files still get line ending and final newline checks', () => {
+    const result = lintRepo(gibRepo({
+        'login.feature': `Feature: Login\r
+  Scenario: wrong password`
+    }));
+    Assert.equal(result.status, 1, result.output);
+    Assert.match(result.output, /login\.feature:0:0: error: wrong line endings or no final newline/);
+});
