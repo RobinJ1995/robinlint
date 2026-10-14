@@ -19,4 +19,8 @@ def load(gate, ok, items):
         return None
     if ok:  # expect: else-if
         log("ok")
+    if ok:
+        return items
+    else:  # expect: else-after-exit
+        log("not ok")
     return items

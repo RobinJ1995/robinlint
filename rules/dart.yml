@@ -93,3 +93,50 @@ rule:
           has:
             field: consequence
             matches: allman-else
+---
+id: else-after-exit-dart
+language: dart
+severity: error
+message: no useless else statements
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: expression_statement
+        has:
+          kind: throw_expression
+      - kind: rethrow_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - kind: block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                kind: comment
+          matches: exit
+  exiting-branches:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    any:
+      - not:
+          inside:
+            kind: if_statement
+            field: alternative
+      - inside:
+          kind: if_statement
+          field: alternative
+          matches: exiting-branches
+rule:
+  kind: block
+  inside:
+    kind: if_statement
+    field: alternative
+    matches: exiting-branches

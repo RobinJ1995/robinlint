@@ -299,3 +299,75 @@ invalid:
             }
         }
     }
+---
+id: else-after-exit-java
+valid:
+  - |
+    class A {
+        int f() {
+            if (a) {
+                return a;
+            } else if (b) {
+                return b;
+            }
+
+            return c;
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                x();
+            } else {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                return a;
+            } else if (b) {
+                x();
+            } else {
+                y();
+            }
+        }
+    }
+invalid:
+  - |
+    class A {
+        int f() {
+            if (a) {
+                return a;
+            } else if (b) {
+                return b;
+            } else {
+                return c;
+            }
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                throw e;
+            } else {
+                x();
+            }
+        }
+    }
+  - |
+    class A {
+        int f() {
+            for (;;) {
+                if (a) {
+                    continue;
+                } else {
+                    y();
+                }
+            }
+        }
+    }

@@ -266,3 +266,80 @@ invalid:
     if ($a) {
         b();
     } else { c(); }
+---
+id: else-after-exit-php
+valid:
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return $a;
+        } else if ($b) {
+            return $b;
+        }
+
+        return $c;
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return $a;
+        } else if ($b) {
+            x();
+        } else {
+            y();
+        }
+    }
+invalid:
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return $a;
+        } else if ($b) {
+            return $b;
+        } else {
+            return $c;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            throw $e;
+        } else {
+            x();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        foreach ($xs as $x) {
+            if ($a) {
+                continue;
+            } else {
+                y();
+            }
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return $a;
+        } elseif ($b) {
+            return $b;
+        } else {
+            return $c;
+        }
+    }

@@ -267,3 +267,73 @@ invalid:
             b()
         } else { c() }
     }
+---
+id: else-after-exit-kotlin
+valid:
+  - |
+    fun f(): Int {
+        if (a) {
+            return a
+        } else if (b) {
+            return b
+        }
+
+        return c
+    }
+  - |
+    fun f(): Int {
+        if (a) {
+            x()
+        } else {
+            y()
+        }
+    }
+  - |
+    fun f(): Int {
+        if (a) {
+            return a
+        } else if (b) {
+            x()
+        } else {
+            y()
+        }
+    }
+  - |
+    fun f(): Int {
+        val x = if (a) {
+            return 1
+        } else {
+            2
+        }
+
+        return if (b) 1 else x
+    }
+invalid:
+  - |
+    fun f(): Int {
+        if (a) {
+            return a
+        } else if (b) {
+            return b
+        } else {
+            return c
+        }
+    }
+  - |
+    fun f(): Int {
+        if (a) {
+            throw e
+        } else {
+            x()
+        }
+    }
+  - |
+    fun f(): Int {
+        for (x in xs) {
+            if (a) {
+                continue
+            } else {
+                y()
+            }
+        }
+    }

@@ -273,3 +273,63 @@ invalid:
             }
         }
     }
+---
+id: else-after-exit-dart
+valid:
+  - |
+    int f() {
+        if (a) {
+            return a;
+        } else if (b) {
+            return b;
+        }
+
+        return c;
+    }
+  - |
+    int f() {
+        if (a) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    int f() {
+        if (a) {
+            return a;
+        } else if (b) {
+            x();
+        } else {
+            y();
+        }
+    }
+invalid:
+  - |
+    int f() {
+        if (a) {
+            return a;
+        } else if (b) {
+            return b;
+        } else {
+            return c;
+        }
+    }
+  - |
+    int f() {
+        if (a) {
+            throw e;
+        } else {
+            x();
+        }
+    }
+  - |
+    int f() {
+        for (;;) {
+            if (a) {
+                continue;
+            } else {
+                y();
+            }
+        }
+    }

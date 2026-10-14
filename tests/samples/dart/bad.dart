@@ -46,5 +46,10 @@ Future<void>? load(Gate? gate, bool ok, List<Item>? items) {
     {  // expect: brace-style
         log('allman');
     }
+    if (ok) {
+        return null;
+    } else {  // expect: else-after-exit
+        log('not ok');
+    }
     return null;
 }

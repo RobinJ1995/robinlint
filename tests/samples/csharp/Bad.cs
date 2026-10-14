@@ -36,6 +36,11 @@ class Loader {
         {  // expect: brace-style
             Log("allman");
         }
+        if (ok) {
+            return null;
+        } else {  // expect: else-after-exit
+            Log("not ok");
+        }
         return null;
     }
 }

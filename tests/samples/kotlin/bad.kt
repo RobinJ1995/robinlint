@@ -39,5 +39,10 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
     {  // expect: brace-style
         log("allman")
     }
+    if (ok) {
+        return null
+    } else {  // expect: else-after-exit
+        log("not ok")
+    }
     return null
 }

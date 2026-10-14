@@ -37,5 +37,10 @@ function load(gate, ok, items) {
     {  // expect: brace-style
         log('allman');
     }
+    if (ok) {
+        return items;
+    } else {  // expect: else-after-exit
+        log('not ok');
+    }
     return items;
 }

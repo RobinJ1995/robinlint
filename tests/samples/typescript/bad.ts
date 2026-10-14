@@ -23,5 +23,10 @@ export function parse<T>(input: string | null, fallback: T): T {
     {  // expect: brace-style
         log('allman');
     }
+    if (input) {
+        return fallback;
+    } else {  // expect: else-after-exit
+        log('not ok');
+    }
     return JSON.parse(input) as T;
 }

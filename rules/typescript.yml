@@ -79,3 +79,49 @@ rule:
     - inside:
         kind: else_clause
         regex: '^else[ \t]*(//.*)?\n\s*\{'
+---
+id: else-after-exit-typescript
+language: typescript
+severity: error
+message: no useless else statements
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: throw_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - kind: statement_block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                kind: comment
+          matches: exit
+  exiting-branches:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    any:
+      - not:
+          inside:
+            kind: else_clause
+      - inside:
+          kind: else_clause
+          inside:
+            kind: if_statement
+            matches: exiting-branches
+rule:
+  kind: else_clause
+  not:
+    has:
+      kind: if_statement
+  inside:
+    kind: if_statement
+    matches: exiting-branches

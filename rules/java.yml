@@ -94,3 +94,49 @@ rule:
           has:
             field: consequence
             matches: allman-else
+---
+id: else-after-exit-java
+language: java
+severity: error
+message: no useless else statements
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: throw_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - kind: block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                any:
+                  - kind: line_comment
+                  - kind: block_comment
+          matches: exit
+  exiting-branches:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    any:
+      - not:
+          inside:
+            kind: if_statement
+            field: alternative
+      - inside:
+          kind: if_statement
+          field: alternative
+          matches: exiting-branches
+rule:
+  kind: block
+  inside:
+    kind: if_statement
+    field: alternative
+    matches: exiting-branches

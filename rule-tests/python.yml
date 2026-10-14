@@ -104,3 +104,54 @@ invalid:
             raise e
         if c:
             x()
+---
+id: else-after-exit-python
+valid:
+  - |
+    def f():
+        if a:
+            return a
+        elif b:
+            return b
+
+        return c
+  - |
+    def f():
+        if a:
+            x()
+        else:
+            y()
+  - |
+    def f():
+        if a:
+            return a
+        elif b:
+            x()
+        else:
+            y()
+  - |
+    for x in xs:
+        pass
+    else:
+        y()
+invalid:
+  - |
+    def f():
+        if a:
+            return a
+        elif b:
+            return b
+        else:
+            return c
+  - |
+    def f():
+        if a:
+            raise e
+        else:
+            x()
+  - |
+    for x in xs:
+        if a:
+            continue
+        else:
+            y()

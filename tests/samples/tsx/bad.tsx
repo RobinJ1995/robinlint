@@ -18,5 +18,10 @@ export function Item({ item, onOpen }: Props) {
     {  // expect: brace-style
         log('allman');
     }
+    if (item.open) {
+        return null;
+    } else {  // expect: else-after-exit
+        log('not ok');
+    }
     return <div>{item.name}</div>;
 }

@@ -235,3 +235,63 @@ invalid:
         }
         return a as T;
     }
+---
+id: else-after-exit-typescript
+valid:
+  - |
+    function f(): number {
+        if (a) {
+            return a;
+        } else if (b) {
+            return b;
+        }
+
+        return c;
+    }
+  - |
+    function f(): number {
+        if (a) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): number {
+        if (a) {
+            return a;
+        } else if (b) {
+            x();
+        } else {
+            y();
+        }
+    }
+invalid:
+  - |
+    function f(): number {
+        if (a) {
+            return a;
+        } else if (b) {
+            return b;
+        } else {
+            return c;
+        }
+    }
+  - |
+    function f(): number {
+        if (a) {
+            throw e;
+        } else {
+            x();
+        }
+    }
+  - |
+    function f(): number {
+        for (const x of xs) {
+            if (a) {
+                continue;
+            } else {
+                y();
+            }
+        }
+    }
