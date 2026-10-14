@@ -1,0 +1,96 @@
+id: braces-php
+language: php
+severity: error
+message: if statements use braces.
+rule:
+  any:
+    - kind: if_statement
+    - kind: else_if_clause
+    - kind: else_clause
+  has:
+    field: body
+    not:
+      any:
+        - kind: compound_statement
+        - kind: colon_block
+        - kind: if_statement
+---
+id: else-if-php
+language: php
+severity: error
+message: consecutive if statements that always exit are an elseif.
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: expression_statement
+        has:
+          kind: throw_expression
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - any:
+          - kind: compound_statement
+          - kind: colon_block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                kind: comment
+          matches: exit
+  exiting-chain:
+    kind: if_statement
+    has:
+      field: body
+      matches: ends-with-exit
+    not:
+      has:
+        field: alternative
+        not:
+          any:
+            - kind: else_if_clause
+              has:
+                field: body
+                matches: ends-with-exit
+            - kind: else_clause
+              has:
+                field: body
+                matches: exiting-chain
+rule:
+  kind: if_statement
+  follows:
+    stopBy:
+      not:
+        kind: comment
+    matches: exiting-chain
+---
+id: brace-style-php
+language: php
+severity: error
+message: if statement braces go on the correct line.
+rule:
+  kind: compound_statement
+  any:
+    - regex: '^\{[ \t]*[^\s/#]|\S[ \t]*\}$'
+      inside:
+        field: body
+        any:
+          - kind: if_statement
+          - kind: else_if_clause
+          - kind: else_clause
+    - inside:
+        kind: if_statement
+        field: body
+        regex: '^if\b[^{]*\)[ \t]*(//.*|#.*)?\n\s*\{'
+    - inside:
+        kind: else_if_clause
+        field: body
+        regex: '^elseif\b[^{]*\)[ \t]*(//.*|#.*)?\n\s*\{'
+    - inside:
+        kind: else_clause
+        field: body
+        regex: '^else[ \t]*(//.*|#.*)?\n\s*\{'

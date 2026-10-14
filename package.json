@@ -1,0 +1,7 @@
+{
+    "private": true,
+    "dependencies": {
+        "@ast-grep/cli": "0.50.0",
+        "editorconfig-checker": "7.0.0"
+    }
+}

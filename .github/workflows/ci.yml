@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx ast-grep test --skip-snapshot-tests
+      - run: node --test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  action-fails-on-violations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: robinlint
+      - name: Make a repo out of the bad samples
+        run: |
+          git init -q
+          for f in robinlint/tests/samples/*/[Bb]ad.*; do
+              cp "$f" .
+              git add "$(basename "$f")"
+          done
+      - id: lint
+        continue-on-error: true
+        uses: ./robinlint
+      - run: test "${{ steps.lint.outcome }}" = failure
+
+  action-lints-this-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          exclude: |
+            tests/samples/

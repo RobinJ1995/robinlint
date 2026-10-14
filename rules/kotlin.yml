@@ -1,0 +1,99 @@
+id: braces-kotlin
+language: kotlin
+severity: error
+message: if statements use braces.
+rule:
+  kind: control_structure_body
+  not:
+    regex: ^\{
+  any:
+    - inside:
+        kind: if_expression
+        field: consequence
+        matches: kotlin-statement-if
+    - inside:
+        kind: if_expression
+        field: alternative
+        matches: kotlin-statement-if
+      not:
+        has:
+          kind: if_expression
+---
+id: else-if-kotlin
+language: kotlin
+severity: error
+message: consecutive if statements that always exit are an elseif.
+utils:
+  comment:
+    any:
+      - kind: line_comment
+      - kind: multiline_comment
+  ends-with-exit:
+    kind: control_structure_body
+    any:
+      - has:
+          kind: jump_expression
+      - has:
+          kind: statements
+          has:
+            nthChild:
+              position: 1
+              reverse: true
+              ofRule:
+                not:
+                  matches: comment
+            kind: jump_expression
+  exiting-chain:
+    kind: if_expression
+    has:
+      field: consequence
+      matches: ends-with-exit
+    not:
+      has:
+        field: alternative
+        not:
+          has:
+            matches: exiting-chain
+rule:
+  kind: if_expression
+  inside:
+    kind: statements
+  follows:
+    stopBy:
+      not:
+        matches: comment
+    matches: exiting-chain
+---
+id: brace-style-kotlin
+language: kotlin
+severity: error
+message: if statement braces go on the correct line.
+utils:
+  allman-else:
+    regex: '\belse[ \t]*(//.*)?\n\s*\{'
+rule:
+  kind: control_structure_body
+  regex: '^\{'
+  any:
+    - regex: '^\{[ \t]*[^\s/]|\S[ \t]*\}$'
+      inside:
+        kind: if_expression
+        matches: kotlin-statement-if
+    - inside:
+        kind: if_expression
+        field: consequence
+        matches: kotlin-statement-if
+        regex: '^if\b[^{]*\)[ \t]*(//.*)?\n\s*\{'
+    # Only the innermost offending else is reported until it's fixed.
+    - not:
+        matches: allman-else
+      inside:
+        kind: if_expression
+        field: alternative
+        all:
+          - matches: kotlin-statement-if
+          - matches: allman-else
+        not:
+          has:
+            field: consequence
+            matches: allman-else

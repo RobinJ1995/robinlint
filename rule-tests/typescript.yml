@@ -1,0 +1,237 @@
+id: braces-typescript
+valid:
+  - |
+    if (a) {
+        b();
+    }
+  - |
+    if (a) {
+        b();
+    } else {
+        c();
+    }
+  - |
+    if (a) {
+        b();
+    } else if (c) {
+        d();
+    } else {
+        e();
+    }
+  - 'x = a ? b : c;'
+invalid:
+  - if (a) b();
+  - if (a) return;
+  - |
+    if (a) {
+        b();
+    } else c();
+  - |
+    if (a) {
+        b();
+    } else if (c) d();
+  - |
+    if (a)
+        b();
+  - |
+    if (a) {
+        b();
+    } else
+        // comment
+        c();
+  - |
+    if (a) if (b) {
+        c();
+    }
+---
+id: else-if-typescript
+valid:
+  - |
+    if (a) {
+        return 1;
+    } else if (b) {
+        x = 1;
+    }
+  - |
+    if (a) {
+        x = 1;
+    }
+    if (b) {
+        y = 1;
+    }
+  - |
+    if (a) {
+        return 1;
+    } else {
+        x = 1;
+    }
+    if (b) {
+        y = 1;
+    }
+  - |
+    if (a) {
+        return 1;
+    } else if (b) {
+        x = 1;
+    }
+    if (c) {
+        y = 1;
+    }
+  - |
+    if (a) {
+        if (b) {
+            return 1;
+        }
+        x = 1;
+    }
+    if (c) {
+        y = 1;
+    }
+  - |
+    if (a) {
+        return 1;
+    }
+    x = 1;
+    if (b) {
+        y = 1;
+    }
+invalid:
+  - |
+    if (a) {
+        return 1;
+    }
+    if (b) {
+        x = 1;
+    }
+  - |
+    if (gate != null) {
+        return gate.future;
+    }
+    if (ok) {
+        connected = true;
+    }
+  - |
+    if (a) {
+        throw new Error();
+    }
+    if (b) {
+        x = 1;
+    }
+  - |
+    for (const x of xs) {
+        if (a) {
+            break;
+        }
+        if (b) {
+            y();
+        }
+    }
+  - |
+    for (const x of xs) {
+        if (a) {
+            continue;
+        }
+        if (b) {
+            y();
+        }
+    }
+  - |
+    if (a) {
+        x = 1;
+        return; // done
+    }
+    if (b) {
+        y();
+    }
+  - |
+    if (a) {
+        return 1;
+    }
+    // comment
+    /* comment */
+    if (b) {
+        x = 1;
+    }
+  - |
+    if (a) {
+        return 1;
+    } else if (b) {
+        throw e;
+    }
+    if (c) {
+        x = 1;
+    }
+  - |
+    if (a) return;
+    if (b) return;
+---
+id: brace-style-typescript
+valid:
+  - |
+    if (a) {
+        b();
+    } else if (c) {
+        d();
+    } else {
+        e();
+    }
+  - |
+    if (a) {
+        b();
+    }
+    else {
+        c();
+    }
+  - |
+    if (a &&
+        b) { // comment
+        c();
+    }
+  - |
+    if (a) {
+    }
+  - |
+    if (xs.some((x) => { return x; })) {
+        b();
+    }
+  - 'function f() { return { a: 1 }; }'
+invalid:
+  - if (a) { b(); }
+  - if (a) {}
+  - |
+    if (a)
+    {
+        b();
+    }
+  - |
+    if (a) {
+        b();
+    } else
+    {
+        c();
+    }
+  - |
+    if (a) {
+        b(); }
+  - |
+    if (a) { b();
+    }
+  - |
+    if (a) {
+        b();
+    } else { c(); }
+  - |
+    if (a) {
+        b();
+    } else if (c)
+    {
+        d();
+    }
+  - |
+    function f<T>(a: T | null): T {
+        if (a === null)
+        {
+            throw new Error();
+        }
+        return a as T;
+    }

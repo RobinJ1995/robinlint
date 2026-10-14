@@ -1,0 +1,301 @@
+id: braces-csharp
+valid:
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else if (c) {
+                D();
+            } else {
+                E();
+            }
+        }
+    }
+  - |
+    class A {
+        int F() {
+            return a ? 1 : 2;
+        }
+    }
+invalid:
+  - |
+    class A {
+        void F() {
+            if (a) B();
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a)
+                return;
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else C();
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else if (c) D();
+        }
+    }
+---
+id: else-if-csharp
+valid:
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 1;
+            } else if (b) {
+                x = 1;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                x = 1;
+            }
+            if (b) {
+                y = 1;
+            }
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 1;
+            } else {
+                x = 1;
+            }
+            if (b) {
+                y = 1;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 1;
+            } else if (b) {
+                x = 1;
+            }
+            if (c) {
+                y = 1;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                if (b) {
+                    return 1;
+                }
+                x = 1;
+            }
+            if (c) {
+                y = 1;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 1;
+            }
+            x = 1;
+            if (b) {
+                y = 1;
+            }
+            return 0;
+        }
+    }
+invalid:
+  - |
+    class A {
+        Task F() {
+            if (gate != null) {
+                return gate.future;
+            }
+            if (ok) {
+                connected = true;
+            }
+            return null;
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                throw new InvalidOperationException();
+            }
+            if (b) {
+                x = 1;
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            for (;;) {
+                if (a) {
+                    break;
+                }
+                if (b) {
+                    Y();
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            for (;;) {
+                if (a) {
+                    continue;
+                }
+                if (b) {
+                    Y();
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                X();
+                return; // done
+            }
+            // comment
+            /* comment */
+            if (b) {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                return;
+            } else if (b) {
+                throw e;
+            }
+            if (c) {
+                X();
+            }
+        }
+    }
+---
+id: brace-style-csharp
+valid:
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else if (c) {
+                D();
+            } else {
+                E();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            }
+            else {
+                C();
+            }
+            if (a &&
+                b) { // comment
+                C();
+            }
+            if (a) {
+            }
+        }
+    }
+invalid:
+  - |
+    class A {
+        void F() {
+            if (a) { B(); }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {}
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a)
+            {
+                B();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else
+            {
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B(); }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else { C(); }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                if (b) {
+                    C();
+                } else
+                {
+                    D();
+                }
+            }
+        }
+    }

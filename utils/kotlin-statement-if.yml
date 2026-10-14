@@ -1,0 +1,35 @@
+# Value-producing ifs (`val x = if (a) 1 else 2`) are exempt.
+id: kotlin-statement-if
+language: kotlin
+utils:
+  comment:
+    any:
+      - kind: line_comment
+      - kind: multiline_comment
+rule:
+  kind: if_expression
+  any:
+    - inside:
+        kind: statements
+      # The last statement of a lambda is its value.
+      not:
+        all:
+          - has:
+              field: alternative
+              kind: control_structure_body
+          - nthChild:
+              position: 1
+              reverse: true
+              ofRule:
+                not:
+                  matches: comment
+          - inside:
+              kind: statements
+              inside:
+                kind: lambda_literal
+    - inside:
+        kind: control_structure_body
+        inside:
+          kind: if_expression
+          field: alternative
+          matches: kotlin-statement-if

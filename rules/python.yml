@@ -1,0 +1,41 @@
+id: else-if-python
+language: python
+severity: error
+message: consecutive if statements that always exit are an elseif.
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: raise_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    kind: block
+    has:
+      nthChild:
+        position: 1
+        reverse: true
+        ofRule:
+          not:
+            kind: comment
+      matches: exit
+  exiting-chain:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    not:
+      has:
+        field: alternative
+        not:
+          kind: elif_clause
+          has:
+            field: consequence
+            matches: ends-with-exit
+rule:
+  kind: if_statement
+  follows:
+    stopBy:
+      not:
+        kind: comment
+    matches: exiting-chain

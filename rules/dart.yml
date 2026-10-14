@@ -1,0 +1,95 @@
+id: braces-dart
+language: dart
+severity: error
+message: if statements use braces.
+rule:
+  kind: if_statement
+  any:
+    - has:
+        field: consequence
+        not:
+          kind: block
+    - has:
+        field: alternative
+        not:
+          any:
+            - kind: block
+            - kind: if_statement
+---
+id: else-if-dart
+language: dart
+severity: error
+message: consecutive if statements that always exit are an elseif.
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: expression_statement
+        has:
+          kind: throw_expression
+      - kind: rethrow_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - kind: block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                kind: comment
+          matches: exit
+  exiting-chain:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    not:
+      has:
+        field: alternative
+        not:
+          matches: exiting-chain
+rule:
+  kind: if_statement
+  follows:
+    stopBy:
+      not:
+        kind: comment
+    matches: exiting-chain
+---
+id: brace-style-dart
+language: dart
+severity: error
+message: if statement braces go on the correct line.
+utils:
+  allman-else:
+    regex: '\belse[ \t]*(//.*)?\n\s*\{'
+rule:
+  kind: block
+  any:
+    - regex: '^\{[ \t]*[^\s/]|\S[ \t]*\}$'
+      any:
+        - inside:
+            kind: if_statement
+            field: consequence
+        - inside:
+            kind: if_statement
+            field: alternative
+    - inside:
+        kind: if_statement
+        field: consequence
+        regex: '^if\b[^{]*\)[ \t]*(//.*)?\n\s*\{'
+    # Only the innermost offending else is reported until it's fixed.
+    - not:
+        matches: allman-else
+      inside:
+        kind: if_statement
+        field: alternative
+        matches: allman-else
+        not:
+          has:
+            field: consequence
+            matches: allman-else

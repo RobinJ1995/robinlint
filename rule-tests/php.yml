@@ -1,0 +1,268 @@
+id: braces-php
+valid:
+  - |
+    <?php
+    if ($a) {
+        b();
+    } elseif ($c) {
+        d();
+    } else if ($e) {
+        f();
+    } else {
+        g();
+    }
+  - |
+    <?php
+    if ($a):
+        b();
+    elseif ($c):
+        d();
+    else:
+        e();
+    endif;
+invalid:
+  - <?php if ($a) b();
+  - |
+    <?php
+    if ($a)
+        return;
+  - |
+    <?php
+    if ($a) {
+        b();
+    } else c();
+  - |
+    <?php
+    if ($a) {
+        b();
+    } elseif ($c) d();
+  - |
+    <?php
+    if ($a) {
+        b();
+    } else if ($c) d();
+---
+id: else-if-php
+valid:
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        } elseif ($b) {
+            $x = 1;
+        }
+        return 0;
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            $x = 1;
+        }
+        if ($b) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        } else {
+            $x = 1;
+        }
+        if ($b) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        } elseif ($b) {
+            $x = 1;
+        }
+        if ($c) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            if ($b) {
+                return 1;
+            }
+            $x = 1;
+        }
+        if ($c) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        }
+        $x = 1;
+        if ($b) {
+            $y = 1;
+        }
+    }
+invalid:
+  - |
+    <?php
+    function f() {
+        if ($gate !== null) {
+            return $gate->future;
+        }
+        if ($ok) {
+            $connected = true;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            throw new Exception();
+        }
+        if ($b) {
+            $x = 1;
+        }
+    }
+  - |
+    <?php
+    foreach ($xs as $x) {
+        if ($a) {
+            break;
+        }
+        if ($b) {
+            y();
+        }
+    }
+  - |
+    <?php
+    foreach ($xs as $x) {
+        if ($a) {
+            continue;
+        }
+        if ($b) {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            x();
+            return; // done
+        }
+        // comment
+        # comment
+        /* comment */
+        if ($b) {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return;
+        } elseif ($b) {
+            throw $e;
+        }
+        if ($c) {
+            x();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return;
+        } else if ($b) {
+            throw $e;
+        }
+        if ($c) {
+            x();
+        }
+    }
+  - |
+    <?php
+    if ($a):
+        return;
+    endif;
+    if ($b):
+        x();
+    endif;
+---
+id: brace-style-php
+valid:
+  - |
+    <?php
+    if ($a) {
+        b();
+    } elseif ($c) {
+        d();
+    } else if ($e) {
+        f();
+    } else {
+        g();
+    }
+  - |
+    <?php
+    if ($a) {
+        b();
+    }
+    else {
+        c();
+    }
+    if ($a &&
+        $b) { # comment
+        c();
+    }
+    if ($a) {
+    }
+invalid:
+  - <?php if ($a) { b(); }
+  - <?php if ($a) {}
+  - |
+    <?php
+    if ($a)
+    {
+        b();
+    }
+  - |
+    <?php
+    if ($a) {
+        b();
+    } elseif ($c)
+    {
+        d();
+    }
+  - |
+    <?php
+    if ($a) {
+        b();
+    } else
+    {
+        c();
+    }
+  - |
+    <?php
+    if ($a) {
+        b(); }
+  - |
+    <?php
+    if ($a) {
+        b();
+    } elseif ($c) { d(); }
+  - |
+    <?php
+    if ($a) {
+        b();
+    } else { c(); }

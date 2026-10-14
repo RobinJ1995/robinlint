@@ -1,0 +1,24 @@
+# - uses: RobinJ1995/robinlint@master
+#   with:
+#     exclude: |
+#       vendor/
+#       **/*.generated.ts
+
+name: robinlint
+description: Lint
+inputs:
+  exclude:
+    description: Newline-separated .gitignore-style patterns of files and folders to skip
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Lint
+      shell: bash
+      env:
+        EXCLUDE: ${{ inputs.exclude }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        npm ci --prefix "$GITHUB_ACTION_PATH"
+        node "$GITHUB_ACTION_PATH/lint.js"

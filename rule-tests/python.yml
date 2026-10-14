@@ -1,0 +1,106 @@
+id: else-if-python
+valid:
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            x = 1
+  - |
+    def f():
+        if a:
+            x = 1
+        if b:
+            y = 1
+  - |
+    def f():
+        if a:
+            return 1
+        else:
+            x = 1
+        if b:
+            y = 1
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            x = 1
+        if c:
+            y = 1
+  - |
+    def f():
+        if a:
+            if b:
+                return 1
+            x = 1
+        if c:
+            y = 1
+  - |
+    def f():
+        if a:
+            return 1
+        x = 1
+        if b:
+            y = 1
+  - |
+    x = [i for i in xs if i]
+    y = 1 if a else 2
+invalid:
+  - |
+    def f():
+        if a:
+            return 1
+        if b:
+            x = 1
+  - |
+    def f():
+        if gate is not None:
+            return gate.future
+        if ok:
+            connected = True
+  - |
+    def f():
+        if a:
+            raise ValueError()
+        if b:
+            x = 1
+  - |
+    for x in xs:
+        if a:
+            break
+        if b:
+            y()
+  - |
+    for x in xs:
+        if a:
+            continue
+        if b:
+            y()
+  - |
+    def f():
+        if a: return
+        if b: return
+  - |
+    def f():
+        if a:
+            x()
+            return  # done
+        # comment
+        if b:
+            y()
+  - |
+    def f():
+        if a:
+            return
+            # trailing comment inside the block
+        if b:
+            y()
+  - |
+    def f():
+        if a:
+            return
+        elif b:
+            raise e
+        if c:
+            x()

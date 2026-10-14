@@ -1,0 +1,81 @@
+id: braces-javascript
+language: javascript
+severity: error
+message: if statements use braces.
+rule:
+  any:
+    - kind: if_statement
+      has:
+        field: consequence
+        not:
+          kind: statement_block
+    - kind: else_clause
+      not:
+        has:
+          any:
+            - kind: statement_block
+            - kind: if_statement
+---
+id: else-if-javascript
+language: javascript
+severity: error
+message: consecutive if statements that always exit are an elseif.
+utils:
+  exit:
+    any:
+      - kind: return_statement
+      - kind: throw_statement
+      - kind: break_statement
+      - kind: continue_statement
+  ends-with-exit:
+    any:
+      - matches: exit
+      - kind: statement_block
+        has:
+          nthChild:
+            position: 1
+            reverse: true
+            ofRule:
+              not:
+                kind: comment
+          matches: exit
+  exiting-chain:
+    kind: if_statement
+    has:
+      field: consequence
+      matches: ends-with-exit
+    not:
+      has:
+        field: alternative
+        not:
+          has:
+            matches: exiting-chain
+rule:
+  kind: if_statement
+  follows:
+    stopBy:
+      not:
+        kind: comment
+    matches: exiting-chain
+---
+id: brace-style-javascript
+language: javascript
+severity: error
+message: if statement braces go on the correct line.
+rule:
+  kind: statement_block
+  any:
+    - regex: '^\{[ \t]*[^\s/]|\S[ \t]*\}$'
+      any:
+        - inside:
+            kind: if_statement
+            field: consequence
+        - inside:
+            kind: else_clause
+    - inside:
+        kind: if_statement
+        field: consequence
+        regex: '^if\b[^{]*\)[ \t]*(//.*)?\n\s*\{'
+    - inside:
+        kind: else_clause
+        regex: '^else[ \t]*(//.*)?\n\s*\{'
