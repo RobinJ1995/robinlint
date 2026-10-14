@@ -1,0 +1,89 @@
+id: comment-or-string-javascript
+language: javascript
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string
+    - kind: template_string
+---
+id: comment-or-string-typescript
+language: typescript
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string
+    - kind: template_string
+---
+id: comment-or-string-tsx
+language: tsx
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string
+    - kind: template_string
+---
+id: comment-or-string-java
+language: java
+severity: info
+rule:
+  any:
+    - kind: line_comment
+    - kind: block_comment
+    - kind: string_literal
+---
+id: comment-or-string-csharp
+language: csharp
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string_literal
+    - kind: verbatim_string_literal
+    - kind: raw_string_literal
+    - kind: interpolated_string_expression
+---
+id: comment-or-string-dart
+language: dart
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string_literal
+---
+id: comment-or-string-php
+language: php
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string
+    - kind: encapsed_string
+    - kind: heredoc
+    - kind: nowdoc
+---
+id: comment-or-string-python
+language: python
+severity: info
+rule:
+  any:
+    - kind: comment
+    - kind: string
+---
+id: comment-or-string-kotlin
+language: kotlin
+severity: info
+rule:
+  any:
+    - kind: line_comment
+    - kind: multiline_comment
+    - kind: string_literal
+---
+id: comment-or-string-html
+language: html
+severity: info
+rule:
+  any:
+    - kind: comment

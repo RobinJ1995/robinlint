@@ -191,3 +191,61 @@ test('paths with spaces work', () => {
     Assert.equal(result.status, 1);
     Assert.ok(findings(result.output).every((f) => f.startsWith('my dir/bad file.js:')), result.output);
 });
+
+test('indentation inside comments and strings is not checked', () => {
+    const result = lintRepo(gibRepo({
+        '.editorconfig': `root = true
+[*]
+indent_style = tab
+`,
+        'generate.py': `"""Colours.
+
+  dock surface        #38383B
+  overview backdrop   #222226
+"""
+
+
+def template():
+	return f"""
+  <a>
+    <b/>
+  </a>
+"""
+`,
+        'icon.xml': `<?xml version="1.0" encoding="utf-8"?>
+<vector>
+	<!-- The swirl: 12 blades, standing in for the orange
+	     wedges of the colour icon -->
+	<path/>
+</vector>
+`,
+        'Fixture.kt': `class Fixture {
+	val json = """
+        {"a": 1}
+    """.trimIndent()
+}
+`
+    }));
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('indentation of code next to comments and strings is still checked', () => {
+    const result = lintRepo(gibRepo({
+        '.editorconfig': `root = true
+[*]
+indent_style = tab
+`,
+        'generate.py': `"""Docstring.
+
+  table
+"""
+
+
+def f():
+  return 1
+`
+    }));
+    Assert.equal(result.status, 1, result.output);
+    Assert.match(result.output, /generate\.py:8:0: error: wrong indentation type/);
+    Assert.doesNotMatch(result.output, /generate\.py:3:/);
+});
