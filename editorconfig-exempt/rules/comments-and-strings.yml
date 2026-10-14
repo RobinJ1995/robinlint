@@ -87,3 +87,10 @@ severity: info
 rule:
   any:
     - kind: comment
+---
+id: comment-or-string-css
+language: css
+severity: info
+rule:
+  any:
+    - kind: comment

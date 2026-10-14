@@ -285,3 +285,26 @@ test('markdown files are left alone by the default .editorconfig', () => {
     }));
     Assert.equal(result.status, 0, result.output);
 });
+
+test('indentation inside CSS and SCSS comments is not checked', () => {
+    const result = lintRepo(gibRepo({
+        '.editorconfig': `root = true
+[*]
+indent_style = tab
+`,
+        'theme.scss': `/* Colour mode.
+   \`media-query\` makes Bootstrap emit its dark colour mode as
+   \`@media (prefers-color-scheme: dark)\` rather than \`[data-bs-theme="dark"]\`, */
+.card {
+	color: $primary;
+}
+`,
+        'theme.css': `/* Colour mode.
+   second line */
+body {
+	color: red;
+}
+`
+    }));
+    Assert.equal(result.status, 0, result.output);
+});

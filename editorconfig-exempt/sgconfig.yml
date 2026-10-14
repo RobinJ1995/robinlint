@@ -3,3 +3,5 @@ ruleDirs:
 languageGlobs:
   html:
     - '*.xml'
+  css:
+    - '*.scss'
