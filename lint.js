@@ -100,6 +100,9 @@ const linesInsideCommentsAndStrings = (files, root) => {
     }));
 };
 
+const isBlankLine = (root, file, line) => 
+    Fs.readFileSync(Path.join(root, file), 'utf8').split('\n')[line - 1].trim() === '';
+
 const checkEditorconfig = (files, root) => {
     const exemptRanges = linesInsideCommentsAndStrings(files, root);
     const editorconfigProcess = spawnSync(
@@ -135,7 +138,7 @@ const checkEditorconfig = (files, root) => {
             return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
         });
 
-        return !(INDENTATION_ERROR.test(message) && exempt);
+        return !(INDENTATION_ERROR.test(message) && (exempt || isBlankLine(root, file, line)));
     });
     errors.forEach(([output]) => console.log(output));
 

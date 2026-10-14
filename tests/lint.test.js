@@ -263,3 +263,18 @@ indent_style = tab
     }));
     Assert.equal(result.status, 0, result.output);
 });
+
+test('lines with only tabs are allowed', () => {
+    const result = lintRepo(gibRepo({
+        '.editorconfig': `root = true
+[*]
+indent_style = tab
+`,
+        'blank.py': `def f():
+	x = 1
+	
+	return x
+`
+    }));
+    Assert.equal(result.status, 0, result.output);
+});
