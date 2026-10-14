@@ -278,3 +278,10 @@ indent_style = tab
     }));
     Assert.equal(result.status, 0, result.output);
 });
+
+test('markdown files are left alone by the default .editorconfig', () => {
+    const result = lintRepo(gibRepo({
+        'notes.md': '# Title\r\n\n\tTabs\n   three spaces\nno final newline'
+    }));
+    Assert.equal(result.status, 0, result.output);
+});
