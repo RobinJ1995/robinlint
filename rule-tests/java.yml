@@ -53,6 +53,45 @@ id: else-if-java
 valid:
   - |
     class A {
+        int f(boolean a, Object o) {
+            if (a) {
+                return 0;
+            }
+            if (!(o instanceof String s)) {
+                return 0;
+            }
+
+            return s.length();
+        }
+    }
+  - |
+    class A {
+        int f(boolean a, Object o) {
+            if (a) {
+                return 0;
+            }
+            if (!(o instanceof Point(int x, int y))) {
+                return 0;
+            }
+
+            return x + y;
+        }
+    }
+  - |
+    class A {
+        int f(boolean a, Object o) {
+            if (a) {
+                return 0;
+            }
+            if (!(o instanceof final String s)) {
+                return 0;
+            }
+
+            return s.length();
+        }
+    }
+  - |
+    class A {
         int f() {
             if (a) {
                 return 1;
@@ -130,6 +169,18 @@ valid:
         }
     }
 invalid:
+  - |
+    class A {
+        int f(boolean a, Object o) {
+            if (a) {
+                return 0;
+            }
+            if (o instanceof String) {
+                return 1;
+            }
+            return 2;
+        }
+    }
   - |
     class A {
         Future f() {

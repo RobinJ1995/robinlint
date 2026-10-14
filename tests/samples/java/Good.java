@@ -31,4 +31,15 @@ class Loader {
         }
         return ok ? null : gate.future;
     }
+
+    int length(boolean skip, Object value) {
+        if (skip) {
+            return 0;
+        }
+        if (!(value instanceof String text)) {
+            return 0;
+        }
+
+        return text.length();
+    }
 }

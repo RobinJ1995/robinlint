@@ -53,6 +53,45 @@ id: else-if-csharp
 valid:
   - |
     class A {
+        string OnThisMachine() {
+            if (windows.Length < 3) {
+                return null;
+            }
+            if (Drive(prefix) is not {} drive) {
+                return null;
+            }
+
+            return Path.Combine([drive, "x"]);
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (!int.TryParse(t, out var n)) {
+                return 0;
+            }
+
+            return n;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (o is not string s) {
+                return 0;
+            }
+
+            return s.Length;
+        }
+    }
+  - |
+    class A {
         int F() {
             if (a) {
                 return 1;
@@ -130,6 +169,42 @@ valid:
         }
     }
 invalid:
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (o is null) {
+                return 1;
+            }
+            return 2;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (o is string) {
+                return 1;
+            }
+            return 2;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (o is Point { X: 0 }) {
+                return 1;
+            }
+            return 2;
+        }
+    }
   - |
     class A {
         Task F() {

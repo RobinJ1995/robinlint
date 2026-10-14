@@ -30,4 +30,15 @@ class Loader {
         }
         return ok ? null : gate.Future;
     }
+
+    string OnThisMachine(string[] windows, string prefix) {
+        if (windows.Length < 3) {
+            return null;
+        }
+        if (Drive(prefix) is not {} drive) {
+            return null;
+        }
+
+        return Path.Combine([drive, prefix]);
+    }
 }

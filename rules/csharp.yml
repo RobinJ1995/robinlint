@@ -49,8 +49,23 @@ utils:
         field: alternative
         not:
           matches: exiting-chain
+  # Turning this if into an else-if would shrink the variable's scope to that else.
+  declares-variable:
+    any:
+      - kind: declaration_pattern
+      - kind: declaration_expression
+      - kind: recursive_pattern
+        has:
+          field: name
+          kind: identifier
 rule:
   kind: if_statement
+  not:
+    has:
+      field: condition
+      has:
+        stopBy: end
+        matches: declares-variable
   follows:
     stopBy:
       not:
