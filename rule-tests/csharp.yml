@@ -49,7 +49,7 @@ invalid:
         }
     }
 ---
-id: else-if-csharp
+id: elseif-csharp
 valid:
   - |
     class A {
@@ -282,7 +282,7 @@ invalid:
         }
     }
 ---
-id: brace-style-csharp
+id: braces-placement-csharp
 valid:
   - |
     class A {
@@ -375,7 +375,7 @@ invalid:
         }
     }
 ---
-id: else-after-exit-csharp
+id: no-else-after-exit-csharp
 valid:
   - |
     class A {

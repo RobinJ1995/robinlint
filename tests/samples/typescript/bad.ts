@@ -5,7 +5,7 @@ export function parse<T>(input: string | null, fallback: T): T {
     if (input.length === 0) {
         throw new Error('empty');
     }
-    if (input.startsWith('#')) {  // expect: else-if
+    if (input.startsWith('#')) {  // expect: elseif
         input = input.slice(1);
     }
 
@@ -14,18 +14,18 @@ export function parse<T>(input: string | null, fallback: T): T {
     } else  // expect: braces
         log('other');
     log('layout');
-    if (input) { log('crammed'); }  // expect: brace-style
+    if (input) { log('crammed'); }  // expect: braces-placement
     log('layout');
     if (input)
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log('allman');
     } else
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log('allman');
     }
     if (input) {
         return fallback;
-    } else {  // expect: else-after-exit
+    } else {  // expect: no-else-after-exit
         log('not ok');
     }
     return JSON.parse(input) as T;

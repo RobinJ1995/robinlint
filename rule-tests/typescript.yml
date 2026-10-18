@@ -44,7 +44,7 @@ invalid:
         c();
     }
 ---
-id: else-if-typescript
+id: elseif-typescript
 valid:
   - |
     if (a) {
@@ -165,7 +165,7 @@ invalid:
     if (a) return;
     if (b) return;
 ---
-id: brace-style-typescript
+id: braces-placement-typescript
 valid:
   - |
     if (a) {
@@ -236,7 +236,7 @@ invalid:
         return a as T;
     }
 ---
-id: else-after-exit-typescript
+id: no-else-after-exit-typescript
 valid:
   - |
     function f(): number {

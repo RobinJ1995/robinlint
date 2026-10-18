@@ -16,7 +16,7 @@ rule:
             - kind: block
             - kind: if_statement
 ---
-id: else-if-java
+id: elseif-java
 language: java
 severity: error
 message: consecutive if statements that always exit are an elseif.
@@ -75,7 +75,7 @@ rule:
           - kind: block_comment
     matches: exiting-chain
 ---
-id: brace-style-java
+id: braces-placement-java
 language: java
 severity: error
 message: if statement braces go on the correct line.
@@ -109,7 +109,7 @@ rule:
             field: consequence
             matches: allman-else
 ---
-id: else-after-exit-java
+id: no-else-after-exit-java
 language: java
 severity: error
 message: no useless else statements

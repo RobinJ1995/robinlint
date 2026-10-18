@@ -6,7 +6,7 @@ class Loader {
         if (gate != null) {
             return gate.future;
         }
-        if (ok) {  // expect: else-if
+        if (ok) {  // expect: elseif
             connected = true;
         }
 
@@ -15,10 +15,10 @@ class Loader {
                 continue;
             }
             /* comment */
-            if (item.last) {  // expect: else-if
+            if (item.last) {  // expect: elseif
                 break;
             }
-            if (item.empty) {  // expect: else-if
+            if (item.empty) {  // expect: elseif
                 log("empty");
             }
         }
@@ -26,22 +26,22 @@ class Loader {
         if (items.isEmpty()) {
             throw new IllegalStateException("empty");
         }
-        if (ok) {  // expect: else-if, braces
+        if (ok) {  // expect: elseif, braces
             log("ok");
         } else log("not ok");
         log("layout");
-        if (ok) { log("crammed"); }  // expect: brace-style
+        if (ok) { log("crammed"); }  // expect: braces-placement
         log("layout");
         if (ok)
-        {  // expect: brace-style
+        {  // expect: braces-placement
             log("allman");
         } else
-        {  // expect: brace-style
+        {  // expect: braces-placement
             log("allman");
         }
         if (ok) {
             return null;
-        } else {  // expect: else-after-exit
+        } else {  // expect: no-else-after-exit
             log("not ok");
         }
         return null;

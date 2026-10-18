@@ -42,7 +42,7 @@ invalid:
         b();
     } else if ($c) d();
 ---
-id: else-if-php
+id: elseif-php
 valid:
   - |
     <?php
@@ -200,7 +200,7 @@ invalid:
         x();
     endif;
 ---
-id: brace-style-php
+id: braces-placement-php
 valid:
   - |
     <?php
@@ -267,7 +267,7 @@ invalid:
         b();
     } else { c(); }
 ---
-id: else-after-exit-php
+id: no-else-after-exit-php
 valid:
   - |
     <?php

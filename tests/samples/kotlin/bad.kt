@@ -5,7 +5,7 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
     if (gate != null) {
         return gate.future
     }
-    if (ok) {  // expect: else-if
+    if (ok) {  // expect: elseif
         connected = true
     }
 
@@ -14,7 +14,7 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
             continue
         }
         // comment
-        if (item.last) {  // expect: else-if
+        if (item.last) {  // expect: elseif
             break
         }
     }
@@ -26,22 +26,22 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
     if (items.isEmpty()) {
         throw IllegalStateException("empty")
     }
-    if (ok) {  // expect: else-if
+    if (ok) {  // expect: elseif
         log("ok")
     } else log("not ok")  // expect: braces
     log("layout")
-    if (ok) { log("crammed") }  // expect: brace-style
+    if (ok) { log("crammed") }  // expect: braces-placement
     log("layout")
     if (ok)
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log("allman")
     } else
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log("allman")
     }
     if (ok) {
         return null
-    } else {  // expect: else-after-exit
+    } else {  // expect: no-else-after-exit
         log("not ok")
     }
     return null
