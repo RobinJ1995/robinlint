@@ -72,25 +72,38 @@ const listFiles = (root, exclude) => {
     }
 };
 
-const runTool = (cmd, args, files, root) => {
-    const toolProcess = spawnSync(
-        cmd,
-        [...args, ...files],
+const runAstGrep = (root, files, rules) => {
+    const astGrepProcess = spawnSync(
+        AST_GREP,
+        [
+            'scan',
+            '--config', Path.join(ACTION_DIR, 'sgconfig.yml'),
+            '--filter', `^(?:${rules.join('|')})-[a-z]+$`,
+            '--json=stream',
+            ...files
+        ],
         {
             cwd: root,
-            stdio: 'inherit'
+            encoding: 'utf8',
+            maxBuffer: 1024 ** 3
         }
     );
 
-    if (toolProcess.error) {
-        throw toolProcess.error;
-    } else if (toolProcess.status === 1) {
-        return false;
-    } else if (toolProcess.status !== 0) {
-        throw new Error(`${cmd} exited with status ${toolProcess.status}`);
+    if (astGrepProcess.error) {
+        throw astGrepProcess.error;
+    } else if (astGrepProcess.status !== 0 && astGrepProcess.status !== 1) {
+        throw new Error(`${AST_GREP} exited with status ${astGrepProcess.status}:\n${astGrepProcess.stderr}`);
     }
 
-    return true;
+    const findings = astGrepProcess.stdout.split('\n')
+        .filter(x => !!x)
+        .map(JSON.parse);
+    findings.forEach(match => {
+        const { line, column } = match.range.start;
+        console.log(`${match.file}:${line + 1}:${column + 1}: ${match.severity}[${match.ruleId}]: ${match.message}`);
+    });
+
+    return findings.every(match => match.severity !== 'error');
 };
 
 const linesInsideCommentsAndStrings = (files, root) => {
@@ -210,12 +223,7 @@ const main = () => {
     const astGrepRules = Object.keys(rules).filter((rule) => rule !== 'editorconfig' && rules[rule]);
     console.log('\n');
     console.log('> Lint');
-    const astGrepPassed = runTool(
-        AST_GREP,
-        ['scan', '--config', Path.join(ACTION_DIR, 'sgconfig.yml'), '--filter', `^(?:${astGrepRules.join('|')})-[a-z]+$`, '--report-style', 'short'],
-        files,
-        root
-    );
+    const astGrepPassed = runAstGrep(root, files, astGrepRules);
     console.log('\n');
     console.log(astGrepPassed ? '✅' : '❌');
 
