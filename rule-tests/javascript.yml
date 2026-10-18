@@ -44,7 +44,7 @@ invalid:
         c();
     }
 ---
-id: else-if-javascript
+id: elseif-javascript
 valid:
   - |
     if (a) {
@@ -165,7 +165,7 @@ invalid:
     if (a) return;
     if (b) return;
 ---
-id: brace-style-javascript
+id: braces-placement-javascript
 valid:
   - |
     if (a) {
@@ -228,7 +228,7 @@ invalid:
         d();
     }
 ---
-id: else-after-exit-javascript
+id: no-else-after-exit-javascript
 valid:
   - |
     function f() {

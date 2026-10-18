@@ -5,7 +5,7 @@ function load(gate, ok, items) {
     if (gate != null) {
         return gate.future;
     }
-    if (ok) {  // expect: else-if
+    if (ok) {  // expect: elseif
         connected = true;
     }
 
@@ -14,7 +14,7 @@ function load(gate, ok, items) {
             continue;
         }
         // comment
-        if (item.last) {  // expect: else-if
+        if (item.last) {  // expect: elseif
             done = true;
         }
     }
@@ -24,22 +24,22 @@ function load(gate, ok, items) {
     } else if (items.length === 0) {
         return [];
     }
-    if (ok) {  // expect: else-if
+    if (ok) {  // expect: elseif
         log('ok');
     } else log('not ok');  // expect: braces
     log('layout');
-    if (ok) { log('crammed'); }  // expect: brace-style
+    if (ok) { log('crammed'); }  // expect: braces-placement
     log('layout');
     if (ok)
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log('allman');
     } else
-    {  // expect: brace-style
+    {  // expect: braces-placement
         log('allman');
     }
     if (ok) {
         return items;
-    } else {  // expect: else-after-exit
+    } else {  // expect: no-else-after-exit
         log('not ok');
     }
     return items;

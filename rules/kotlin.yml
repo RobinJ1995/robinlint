@@ -19,7 +19,7 @@ rule:
         has:
           kind: if_expression
 ---
-id: else-if-kotlin
+id: elseif-kotlin
 language: kotlin
 severity: error
 message: consecutive if statements that always exit are an elseif.
@@ -64,7 +64,7 @@ rule:
         matches: comment
     matches: exiting-chain
 ---
-id: brace-style-kotlin
+id: braces-placement-kotlin
 language: kotlin
 severity: error
 message: if statement braces go on the correct line.
@@ -98,7 +98,7 @@ rule:
             field: consequence
             matches: allman-else
 ---
-id: else-after-exit-kotlin
+id: no-else-after-exit-kotlin
 language: kotlin
 severity: error
 message: no useless else statements

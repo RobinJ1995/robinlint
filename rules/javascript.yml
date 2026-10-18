@@ -16,7 +16,7 @@ rule:
             - kind: statement_block
             - kind: if_statement
 ---
-id: else-if-javascript
+id: elseif-javascript
 language: javascript
 severity: error
 message: consecutive if statements that always exit are an elseif.
@@ -58,7 +58,7 @@ rule:
         kind: comment
     matches: exiting-chain
 ---
-id: brace-style-javascript
+id: braces-placement-javascript
 language: javascript
 severity: error
 message: if statement braces go on the correct line.
@@ -80,7 +80,7 @@ rule:
         kind: else_clause
         regex: '^else[ \t]*(//.*)?\n\s*\{'
 ---
-id: else-after-exit-javascript
+id: no-else-after-exit-javascript
 language: javascript
 severity: error
 message: no useless else statements

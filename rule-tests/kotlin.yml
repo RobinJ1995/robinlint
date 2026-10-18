@@ -58,7 +58,7 @@ invalid:
         }
     }
 ---
-id: else-if-kotlin
+id: elseif-kotlin
 valid:
   - |
     fun f(): Int {
@@ -203,7 +203,7 @@ invalid:
         }
     }
 ---
-id: brace-style-kotlin
+id: braces-placement-kotlin
 valid:
   - |
     fun f() {
@@ -268,7 +268,7 @@ invalid:
         } else { c() }
     }
 ---
-id: else-after-exit-kotlin
+id: no-else-after-exit-kotlin
 valid:
   - |
     fun f(): Int {

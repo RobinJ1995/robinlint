@@ -16,7 +16,7 @@ rule:
             - kind: block
             - kind: if_statement
 ---
-id: else-if-csharp
+id: elseif-csharp
 language: csharp
 severity: error
 message: consecutive if statements that always exit are an elseif.
@@ -72,7 +72,7 @@ rule:
         kind: comment
     matches: exiting-chain
 ---
-id: brace-style-csharp
+id: braces-placement-csharp
 language: csharp
 severity: error
 message: if statement braces go on the correct line.
@@ -106,7 +106,7 @@ rule:
             field: consequence
             matches: allman-else
 ---
-id: else-after-exit-csharp
+id: no-else-after-exit-csharp
 language: csharp
 severity: error
 message: no useless else statements

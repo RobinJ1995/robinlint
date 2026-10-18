@@ -6,7 +6,7 @@ class Loader {
         if (gate != null) {
             return gate.Future;
         }
-        if (ok) {  // expect: else-if
+        if (ok) {  // expect: elseif
             connected = true;
         }
 
@@ -15,7 +15,7 @@ class Loader {
                 continue;
             }
             // comment
-            if (item.Last) {  // expect: else-if
+            if (item.Last) {  // expect: elseif
                 break;
             }
         }
@@ -23,22 +23,22 @@ class Loader {
         if (items.Count == 0) {
             throw new InvalidOperationException("empty");
         }
-        if (ok) {  // expect: else-if, braces
+        if (ok) {  // expect: elseif, braces
             Log("ok");
         } else Log("not ok");
         Log("layout");
-        if (ok) { Log("crammed"); }  // expect: brace-style
+        if (ok) { Log("crammed"); }  // expect: braces-placement
         Log("layout");
         if (ok)
-        {  // expect: brace-style
+        {  // expect: braces-placement
             Log("allman");
         } else
-        {  // expect: brace-style
+        {  // expect: braces-placement
             Log("allman");
         }
         if (ok) {
             return null;
-        } else {  // expect: else-after-exit
+        } else {  // expect: no-else-after-exit
             Log("not ok");
         }
         return null;

@@ -44,7 +44,7 @@ invalid:
         c();
     }
 ---
-id: else-if-tsx
+id: elseif-tsx
 valid:
   - |
     if (a) {
@@ -165,7 +165,7 @@ invalid:
     if (a) return;
     if (b) return;
 ---
-id: brace-style-tsx
+id: braces-placement-tsx
 valid:
   - |
     if (a) {
@@ -233,7 +233,7 @@ invalid:
         return <div>{p.a ? <A /> : null}</div>;
     }
 ---
-id: else-after-exit-tsx
+id: no-else-after-exit-tsx
 valid:
   - |
     function f() {

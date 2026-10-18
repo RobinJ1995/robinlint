@@ -42,7 +42,7 @@ invalid:
         } else if (c) d();
     }
 ---
-id: else-if-dart
+id: elseif-dart
 valid:
   - |
     int f() {
@@ -199,7 +199,7 @@ invalid:
         }
     }
 ---
-id: brace-style-dart
+id: braces-placement-dart
 valid:
   - |
     void f() {
@@ -274,7 +274,7 @@ invalid:
         }
     }
 ---
-id: else-after-exit-dart
+id: no-else-after-exit-dart
 valid:
   - |
     int f() {
