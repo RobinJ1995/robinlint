@@ -3,12 +3,18 @@
 #     exclude: |
 #       vendor/
 #       **/*.generated.ts
+#     rules: |
+#       editorconfig: false
 
 name: robinlint
 description: Lint
 inputs:
   exclude:
     description: Newline-separated .gitignore-style patterns of files and folders to skip
+    required: false
+    default: ''
+  rules:
+    description: Rule overrides
     required: false
     default: ''
 runs:
@@ -21,6 +27,7 @@ runs:
       shell: bash
       env:
         EXCLUDE: ${{ inputs.exclude }}
+        RULES: ${{ inputs.rules }}
         GITHUB_TOKEN: ${{ github.token }}
       run: |
         npm ci --prefix "$GITHUB_ACTION_PATH"

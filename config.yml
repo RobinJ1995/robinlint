@@ -1,0 +1,16 @@
+exclude:
+  - pubspec.lock
+  - Podfile.lock
+  - '*.g.dart'
+  - '*.freezed.dart'
+  - '*.mocks.dart'
+  - '*.Designer.cs'
+  - '*.g.cs'
+  - '*_pb2.py'
+  - '*_pb2_grpc.py'
+rules:
+  editorconfig: true
+  braces: true
+  braces-placement: true
+  elseif: true
+  no-else-after-exit: true

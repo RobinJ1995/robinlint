@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// Usage: EXCLUDE='<.gitignore-style patterns>' node lint.js, from inside the repo to check.
+// Usage: EXCLUDE='<.gitignore-style patterns>' RULES='<YAML>' node lint.js, from inside the repo to check.
 
 const { spawnSync } = require('node:child_process');
 const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
+const Yaml = require('yaml');
 
 const ACTION_DIR = __dirname;
+const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
+const MODES = [true, false];
 const AST_GREP = Path.join(ACTION_DIR, 'node_modules', '.bin', 'ast-grep');
 const EDITORCONFIG_CHECKER_WRAPPER = Path.join(ACTION_DIR, 'node_modules', '.bin', 'editorconfig-checker');
 const EDITORCONFIG_CHECKER_VERSION = 'v4.0.2';
@@ -33,9 +36,23 @@ const git = (cwd, args) => {
     return gitProcess.stdout;
 };
 
-const listFiles = root => {
-    const patterns = Fs.readFileSync(Path.join(ACTION_DIR, 'default-excludes'), 'utf8')
-        + '\n' + (process.env.EXCLUDE || '') + '\n';
+const loadConfig = () => {
+    const defaults = Yaml.parse(Fs.readFileSync(DEFAULT_CONFIG_FILE, 'utf8'));
+    const config = {
+        exclude: [...defaults.exclude, ...(process.env.EXCLUDE ?? '').split('\n')],
+        rules: { ...defaults.rules, ...Yaml.parse(process.env.RULES ?? '') }
+    };
+
+    const invalid = Object.entries(config.rules).find(([rule, mode]) => !(rule in defaults.rules) || !MODES.includes(mode));
+    if (invalid) {
+        throw new Error(`Invalid rule setting: ${invalid.join(': ')}`);
+    }
+
+    return config;
+};
+
+const listFiles = (root, exclude) => {
+    const patterns = exclude.join('\n');
     const tempDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'robinlint-'));
     const excludeFile = Path.join(tempDir, 'exclude');
     Fs.writeFileSync(excludeFile, patterns);
@@ -182,18 +199,20 @@ const ensureEditorconfig = root => {
 };
 
 const main = () => {
+    const { exclude, rules } = loadConfig();
     const root = git(process.cwd(), ['rev-parse', '--show-toplevel']).trim();
-    const files = listFiles(root);
+    const files = listFiles(root, exclude);
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
         return 0;
     }
 
+    const astGrepRules = Object.keys(rules).filter((rule) => rule !== 'editorconfig' && rules[rule]);
     console.log('\n');
     console.log('> Lint');
     const astGrepPassed = runTool(
         AST_GREP,
-        ['scan', '--config', Path.join(ACTION_DIR, 'sgconfig.yml'), '--report-style', 'short'],
+        ['scan', '--config', Path.join(ACTION_DIR, 'sgconfig.yml'), '--filter', `^(?:${astGrepRules.join('|')})-[a-z]+$`, '--report-style', 'short'],
         files,
         root
     );
@@ -203,7 +222,7 @@ const main = () => {
     console.log('\n');
     console.log('> EditorConfig');
     ensureEditorconfig(root);
-    const editorconfigPassed = checkEditorconfig(files, root);
+    const editorconfigPassed = !rules.editorconfig || checkEditorconfig(files, root);
     console.log('\n');
     console.log(editorconfigPassed ? '✅' : '❌');
 

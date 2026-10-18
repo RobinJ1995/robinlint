@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
+const Yaml = require('yaml');
 
 const LINT_SCRIPT_PATH = Path.join(__dirname, '..', 'lint.js');
 const SAMPLES_DIR = Path.join(__dirname, 'samples');
@@ -28,7 +29,7 @@ const gibRepo = (files) => {
     return repo;
 };
 
-const lintRepo = (repo, exclude = '') => {
+const lintRepo = (repo, exclude = '', rules = '') => {
     const proc = spawnSync(
         'node',
         [LINT_SCRIPT_PATH],
@@ -37,7 +38,8 @@ const lintRepo = (repo, exclude = '') => {
             encoding: 'utf8', 
             env: {
                 ...process.env,
-                EXCLUDE: exclude
+                EXCLUDE: exclude,
+                RULES: rules
             }
         }
     );
@@ -110,7 +112,7 @@ test('excluded files, folders and wildcards are not checked', () => {
     Assert.equal(result.status, 0, result.output);
 });
 
-test('files in default-excludes are not checked', () => {
+test('files excluded by default are not checked', () => {
     const result = lintRepo(gibRepo({
         'lib/model.g.dart': sample('dart', 'bad.dart'),
         'pubspec.lock': 'a:\n\tb: 1'
@@ -327,4 +329,36 @@ test('feature files still get line ending and final newline checks', () => {
     }));
     Assert.equal(result.status, 1, result.output);
     Assert.match(result.output, /login\.feature:0:0: error: wrong line endings or no final newline/);
+});
+
+test('rules can be turned off in the config', () => {
+    const content = sample('javascript', 'bad.js');
+    const result = lintRepo(gibRepo({ 'bad.js': content }), '', 'braces: false\n');
+    const want = expected('bad.js', content, 'javascript').filter((finding) => !finding.endsWith(' braces-javascript'));
+    Assert.deepEqual(findings(result.output), want, result.output);
+
+    const editorconfigOff = lintRepo(gibRepo({ 'tabs.txt': 'a\n\tb\n' }), '', 'editorconfig: false\n');
+    Assert.equal(editorconfigOff.status, 0, editorconfigOff.output);
+});
+
+test('unknown rules and modes are refused', () => {
+    [
+        ['brace-style: true\n', /Invalid rule setting: brace-style: true/],
+        ['braces: maybe\n', /Invalid rule setting: braces: maybe/]
+    ].forEach(([rules, message]) => {
+        const result = lintRepo(gibRepo({ 'ok.txt': 'a\n' }), '', rules);
+        Assert.notEqual(result.status, 0, result.output);
+        Assert.match(result.output, message);
+    });
+});
+
+test('every ast-grep rule can be configured', () => {
+    const defaults = Yaml.parse(Fs.readFileSync(Path.join(__dirname, '..', 'config.yml'), 'utf8')).rules;
+    const rulesDir = Path.join(__dirname, '..', 'rules');
+    Fs.readdirSync(rulesDir).forEach((file) => {
+        Yaml.parseAllDocuments(Fs.readFileSync(Path.join(rulesDir, file), 'utf8')).forEach((document) => {
+            const rule = document.get('id').replace(/-[a-z]+$/, '');
+            Assert.ok(rule in defaults, `${rule} (${file}) is missing from config.yml`);
+        });
+    });
 });
