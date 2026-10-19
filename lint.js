@@ -6,11 +6,11 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { GitRepo } = require('./git');
+const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
-const MODES = [true, false];
+const MODES = [true, false, 'only-new'];
 const AST_GREP = Path.join(ACTION_DIR, 'node_modules', '.bin', 'ast-grep');
 const EDITORCONFIG_CHECKER_WRAPPER = Path.join(ACTION_DIR, 'node_modules', '.bin', 'editorconfig-checker');
 const EDITORCONFIG_CHECKER_VERSION = 'v4.0.2';
@@ -213,11 +213,16 @@ const main = () => {
     const { exclude, rules } = loadConfig();
     const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
+    const change = PullRequest.load() ?? Push.load();
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
         return 0;
     }
 
+    const gitRepo = new GitRepo(root);
+    // Outside pull requests and pushes, what's new is what the latest commit adds.
+    const base = change !== null ? change.baseCommit(gitRepo) : gitRepo.firstParent('HEAD');
+    const diff = gitRepo.diff(base);
     const findings = [
         ...runAstGrep(root, files),
         ...runEditorconfigChecker(root, files)
@@ -226,7 +231,9 @@ const main = () => {
     const results = enabledRules.map(rule => {
         console.log('\n');
         console.log(`> ${rule}`);
-        const ruleFindings = findings.filter(finding => finding.rule === rule);
+        const ruleFindings = findings
+            .filter(finding => finding.rule === rule)
+            .filter(finding => rules[rule] === true || diff.isLineNew(finding.file, finding.line));
         ruleFindings.forEach(finding => console.log(finding.output));
         const passed = ruleFindings.every(finding => !finding.isError);
         console.log('\n');
