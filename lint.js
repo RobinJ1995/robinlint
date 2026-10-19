@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { GitDiff, GitRepo, PullRequest } = require('./git');
+const { GitDiff, GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
@@ -217,7 +217,7 @@ const main = async () => {
     const { exclude, rules } = loadConfig();
     const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
-    const pullRequest = PullRequest.load();
+    const change = PullRequest.load() ?? Push.load();
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
         return 0;
@@ -225,8 +225,8 @@ const main = async () => {
 
     const { editorconfig, ...astGrepModes } = rules;
     const usesOnlyNew = Object.values(rules).includes('only-new');
-    // Outside pull requests nothing is new, so only-new rules find nothing.
-    const diff = pullRequest !== null && usesOnlyNew ? await pullRequest.diff(root) : new GitDiff('');
+    // Outside pull requests and pushes nothing is new, so only-new rules find nothing.
+    const diff = change !== null && usesOnlyNew ? await change.diff(root) : new GitDiff('');
 
     console.log('\n');
     console.log('> Lint');

@@ -8,6 +8,7 @@ const HUNK_START_REGEX = /^@@ /m;
 const HUNK_REGEX = /^@@ -\S+ \+(?<start>\d+)(?:,(?<count>\d+))? @@/gm;
 const NEW_FILE_PATH_REGEX = /^\+\+\+ b\/(?<path>.*?)\t?$/m;
 const ADDED_FILE_REGEX = /^--- \/dev\/null$/m;
+const ZERO_SHA_REGEX = /^0+$/;
 
 class GitRepo {
     constructor(cwd) {
@@ -90,17 +91,32 @@ class GitDiff {
     };
 }
 
-class PullRequest {
+// What a pull request or push adds.
+class Change {
     constructor(event) {
         this.event = event;
     }
 
+    static readEvent = () => JSON.parse(Fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+
+    diff = async root => {
+        const gitRepo = new GitRepo(root);
+        const baseCommit = await this.baseCommit(gitRepo);
+        if (!gitRepo.hasCommit(baseCommit)) {
+            gitRepo.fetchCommit(baseCommit);
+        }
+
+        return gitRepo.diff(baseCommit);
+    };
+}
+
+class PullRequest extends Change {
     static load = () => {
         if (process.env.GITHUB_EVENT_NAME !== 'pull_request') {
             return null;
         }
 
-        const event = JSON.parse(Fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+        const event = Change.readEvent();
 
         return new PullRequest(event);
     };
@@ -128,16 +144,36 @@ class PullRequest {
 
         return comparison.merge_base_commit.sha;
     };
+}
 
-    diff = async root => {
-        const gitRepo = new GitRepo(root);
-        const baseCommit = await this.baseCommit(gitRepo);
-        if (!gitRepo.hasCommit(baseCommit)) {
-            gitRepo.fetchCommit(baseCommit);
+class Push extends Change {
+    static load = () => {
+        if (process.env.GITHUB_EVENT_NAME !== 'push') {
+            return null;
         }
 
-        return gitRepo.diff(baseCommit);
+        const event = Change.readEvent();
+        // A push that deletes a branch adds nothing.
+        if (ZERO_SHA_REGEX.test(event.after)) {
+            return null;
+        }
+
+        return new Push(event);
+    };
+
+    comparisonPath = () => {
+        const { repository, before, after } = this.event;
+        // A new branch has no before, so it is compared against the default branch.
+        const base = ZERO_SHA_REGEX.test(before) ? repository.default_branch : before;
+
+        return `/repos/${repository.full_name}/compare/${base}...${after}`;
+    };
+
+    baseCommit = async () => {
+        const comparison = await github(`${this.comparisonPath()}?per_page=1`);
+
+        return comparison.merge_base_commit.sha;
     };
 }
 
-module.exports = { GitRepo, GitDiff, PullRequest };
+module.exports = { GitRepo, GitDiff, PullRequest, Push };

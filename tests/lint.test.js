@@ -398,7 +398,7 @@ const commitFiles = (repo, files) => {
 const REPOSITORY = 'someone/repo';
 
 // Against a fake GitHub API that only knows the given routes.
-const lintPullRequest = async ({ repo, pullRequest, routes, rules }) => {
+const lintEvent = async ({ repo, eventName, event, routes, rules }) => {
     const server = Http.createServer((request, response) => {
         const route = routes[new URL(request.url, 'http://localhost').pathname];
         response.writeHead(route === undefined ? 404 : 200, { 'Content-Type': 'application/json' });
@@ -407,10 +407,7 @@ const lintPullRequest = async ({ repo, pullRequest, routes, rules }) => {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 
     const eventPath = Path.join(repo, '..', `${Path.basename(repo)}-event.json`);
-    Fs.writeFileSync(eventPath, JSON.stringify({
-        repository: { full_name: REPOSITORY },
-        pull_request: pullRequest
-    }));
+    Fs.writeFileSync(eventPath, JSON.stringify(event));
 
     try {
         const lintProcess = spawn('node', [LINT_SCRIPT_PATH], {
@@ -418,7 +415,7 @@ const lintPullRequest = async ({ repo, pullRequest, routes, rules }) => {
             env: {
                 ...process.env,
                 RULES: rules,
-                GITHUB_EVENT_NAME: 'pull_request',
+                GITHUB_EVENT_NAME: eventName,
                 GITHUB_EVENT_PATH: eventPath,
                 GITHUB_API_URL: `http://127.0.0.1:${server.address().port}`,
                 GITHUB_TOKEN: ''
@@ -439,7 +436,7 @@ const lintPullRequest = async ({ repo, pullRequest, routes, rules }) => {
     }
 };
 
-test('only-new rules are skipped outside pull requests', () => {
+test('only-new rules are skipped outside pull requests and pushes', () => {
     const rules = [
         'editorconfig',
         'braces',
@@ -481,6 +478,15 @@ function g(y) {
     'new.txt': 'no final newline'
 };
 
+const assertOnlyNewFindings = result => {
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+    Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
+    Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
+    Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
+    Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
+};
+
 [
     { checkout: 'merged into its base branch, as actions/checkout does', merged: true },
     { checkout: 'at its head', merged: false }
@@ -499,24 +505,46 @@ function g(y) {
         const routes = merged
             ? {}
             : { [`/repos/${REPOSITORY}/compare/${base}...${head}`]: { merge_base_commit: { sha: base } } };
-        const result = await lintPullRequest({
+        const result = await lintEvent({
             repo,
-            pullRequest: {
-                base: {
-                    sha: base
+            eventName: 'pull_request',
+            event: {
+                repository: {
+                    full_name: REPOSITORY
                 },
-                head: {
-                    sha: head
+                pull_request: {
+                    base: {
+                        sha: base
+                    },
+                    head: {
+                        sha: head
+                    }
                 }
             },
             routes,
             rules: 'editorconfig: only-new\nbraces: only-new\n'
         });
-        Assert.equal(result.status, 1, result.output);
-        Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
-        Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
-        Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
-        Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
-        Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
+        assertOnlyNewFindings(result);
     });
+});
+
+test('only-new rules check only the lines a push adds', async () => {
+    const repo = gibRepo({});
+    const before = commitFiles(repo, BASE_FILES);
+    const after = commitFiles(repo, PR_FILES);
+
+    const result = await lintEvent({
+        repo,
+        eventName: 'push',
+        event: {
+            repository: { full_name: REPOSITORY, default_branch: 'master' },
+            before,
+            after
+        },
+        routes: {
+            [`/repos/${REPOSITORY}/compare/${before}...${after}`]: { merge_base_commit: { sha: before } }
+        },
+        rules: 'editorconfig: only-new\nbraces: only-new\n'
+    });
+    assertOnlyNewFindings(result);
 });
