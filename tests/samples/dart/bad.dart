@@ -51,5 +51,6 @@ Future<void>? load(Gate? gate, bool ok, List<Item>? items) {
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    items.forEach((item) => log(item));  // expect: function-reference
     return null;
 }

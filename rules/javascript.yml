@@ -126,6 +126,20 @@ rule:
     kind: if_statement
     matches: exiting-branches
 ---
+id: function-reference-javascript
+language: javascript
+severity: error
+message: pass the function itself, not a lambda that only calls it.
+rule:
+  any:
+    - pattern: $X => $F($X)
+    - pattern: ($X) => $F($X)
+  not:
+    regex: ^async\b
+constraints:
+  F:
+    kind: identifier
+---
 id: no-single-parameter-brackets-javascript
 language: javascript
 severity: error

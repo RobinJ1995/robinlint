@@ -28,5 +28,6 @@ export function parse<T>(input: string | null, fallback: T): T {
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    [input].map(text => parse(text));  // expect: function-reference
     return JSON.parse(input) as T;
 }

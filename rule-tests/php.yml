@@ -343,3 +343,12 @@ invalid:
             return $c;
         }
     }
+---
+id: function-reference-php
+valid:
+  - '<?php array_map(f(...), $a);'
+  - '<?php array_map(fn($x) => $o->f($x), $a);'
+  - '<?php array_map(fn($x) => f($x, 1), $a);'
+  - '<?php array_map(fn($x, $y) => f($x), $a);'
+invalid:
+  - '<?php array_map(fn($x) => f($x), $a);'

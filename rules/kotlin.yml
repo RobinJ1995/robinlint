@@ -146,3 +146,59 @@ rule:
     kind: if_expression
     field: alternative
     matches: exiting-branches
+---
+id: function-reference-kotlin
+language: kotlin
+severity: error
+message: pass a function reference, not a lambda that only calls the function.
+utils:
+  only-child:
+    all:
+      - nthChild: 1
+      - nthChild:
+          position: 1
+          reverse: true
+rule:
+  kind: lambda_literal
+  has:
+    kind: statements
+    has:
+      kind: call_expression
+      matches: only-child
+      all:
+        - has:
+            kind: simple_identifier
+            nthChild: 1
+        - has:
+            kind: call_suffix
+            not:
+              has:
+                kind: annotated_lambda
+            has:
+              kind: value_arguments
+              has:
+                kind: value_argument
+                matches: only-child
+                has:
+                  kind: simple_identifier
+                  matches: only-child
+                  pattern: $X
+  any:
+    - has:
+        kind: lambda_parameters
+        has:
+          kind: variable_declaration
+          matches: only-child
+          has:
+            kind: simple_identifier
+            matches: only-child
+            pattern: $X
+    - not:
+        has:
+          kind: lambda_parameters
+      has:
+        kind: statements
+        has:
+          stopBy: end
+          kind: value_argument
+          regex: ^it$

@@ -446,3 +446,15 @@ invalid:
             }
         }
     }
+---
+id: function-reference-csharp
+valid:
+  - 'a.Select(F);'
+  - 'a.Select(x => Foo.Bar(x));'
+  - 'a.Select(x => F(x, 1));'
+  - 'a.Select((x, y) => F(x));'
+  - 'a.Select(async x => F(x));'
+invalid:
+  - 'a.Select(x => F(x));'
+  - 'a.Select((x) => F(x));'
+  - 'a.Select((int x) => F(x));'

@@ -46,5 +46,6 @@ function load($gate, $ok, $items)
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    array_map(fn($item) => log($item), $items);  // expect: function-reference
     return null;
 }

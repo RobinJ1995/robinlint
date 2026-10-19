@@ -78,3 +78,13 @@ rule:
   inside:
     kind: if_statement
     matches: exiting-branches
+---
+id: function-reference-python
+language: python
+severity: error
+message: pass the function itself, not a lambda that only calls it.
+rule:
+  pattern: 'lambda $X: $F($X)'
+constraints:
+  F:
+    kind: identifier

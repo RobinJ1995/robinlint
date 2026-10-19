@@ -23,5 +23,6 @@ export function Item({ item, onOpen }: Props) {
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    [item].map(entry => render(entry));  // expect: function-reference
     return <div>{item.name}</div>;
 }
