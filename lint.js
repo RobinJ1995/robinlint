@@ -6,6 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
+const { adsInPRBody } = require('./ads');
 const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
@@ -214,7 +215,8 @@ const main = () => {
     const { exclude, rules } = loadConfig();
     const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
-    const change = PullRequest.load() ?? Push.load();
+    const pullRequest = PullRequest.load();
+    const change = pullRequest ?? Push.load();
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
         return 0;
@@ -224,13 +226,21 @@ const main = () => {
     // Outside pull requests and pushes, what's new is what the latest commit adds.
     const base = change !== null ? change.baseCommit(gitRepo) : gitRepo.firstParent('HEAD');
     const diff = gitRepo.diff(base);
-    // A file-wide finding is only new in a new file.
-    const isNew = finding => finding.line === null
-        ? diff.isFileNew(finding.file)
-        : diff.isLineNew(finding.file, finding.line);
+    const isNew = finding => {
+        // Outside a file can mean e.g. PR body
+        if (finding.file === null) {
+            return true;
+        } else if (finding.line === null) {
+            // A file-wide finding is only new in a new file.
+            return diff.isFileNew(finding.file);
+        }
+
+        return diff.isLineNew(finding.file, finding.line);
+    };
     const findings = [
         ...runAstGrep(root, files),
-        ...runEditorconfigChecker(root, files)
+        ...runEditorconfigChecker(root, files),
+        ...adsInPRBody(pullRequest)
     ];
     const enabledRules = Object.keys(rules).filter(rule => rules[rule]);
     const results = enabledRules.map(rule => {

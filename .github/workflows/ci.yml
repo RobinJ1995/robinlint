@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+    # to trigger when PR description is updated
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   test:
