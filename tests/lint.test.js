@@ -538,3 +538,33 @@ test('only-new rules check every line before the first commit', () => {
     Assert.equal(result.status, 1, result.output);
     Assert.deepEqual(findings(result.output), ['code.js:2 braces-javascript', 'code.js:7 braces-javascript'], result.output);
 });
+
+test('only-new editorconfig counts file-wide errors as new only in new files', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, {
+        'tabs.txt': `a
+\tb
+`,
+        'crlf.txt': `a\r
+b\r
+`
+    });
+    commitFiles(repo, {
+        'tabs.txt': `a
+\tb
+\tc
+`,
+        'crlf.txt': `a\r
+b\r
+c\r
+`,
+        'new.txt': 'no final newline'
+    });
+
+    const result = lintRepo(repo, '', 'editorconfig: only-new\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
+    Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
+    Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
+    Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
+});
