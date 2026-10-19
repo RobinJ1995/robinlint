@@ -196,7 +196,8 @@ const runEditorconfigChecker = (root, files) => {
         .map(([output, file, line]) => ({
             rule: 'editorconfig',
             file,
-            line: Number(line),
+            // editorconfig-checker reports file-wide errors on line 0.
+            line: line === '0' ? null : Number(line),
             output,
             isError: true
         }));
@@ -223,6 +224,10 @@ const main = () => {
     // Outside pull requests and pushes, what's new is what the latest commit adds.
     const base = change !== null ? change.baseCommit(gitRepo) : gitRepo.firstParent('HEAD');
     const diff = gitRepo.diff(base);
+    // A file-wide finding is only new in a new file.
+    const isNew = finding => finding.line === null
+        ? diff.isFileNew(finding.file)
+        : diff.isLineNew(finding.file, finding.line);
     const findings = [
         ...runAstGrep(root, files),
         ...runEditorconfigChecker(root, files)
@@ -233,7 +238,7 @@ const main = () => {
         console.log(`> ${rule}`);
         const ruleFindings = findings
             .filter(finding => finding.rule === rule)
-            .filter(finding => rules[rule] === true || diff.isLineNew(finding.file, finding.line));
+            .filter(finding => rules[rule] === true || isNew(finding));
         ruleFindings.forEach(finding => console.log(finding.output));
         const passed = ruleFindings.every(finding => !finding.isError);
         console.log('\n');

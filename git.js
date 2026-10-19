@@ -6,6 +6,7 @@ const HUNK_START_REGEX = /^@@ /m;
 // @@ -<old start>,<old count> +<new start>,<new count> @@
 const HUNK_REGEX = /^@@ -\S+ \+(?<start>\d+)(?:,(?<count>\d+))? @@/gm;
 const NEW_FILE_PATH_REGEX = /^\+\+\+ b\/(?<path>.*?)\t?$/m;
+const ADDED_FILE_REGEX = /^--- \/dev\/null$/m;
 const ZERO_SHA_REGEX = /^0+$/;
 
 class GitRepo {
@@ -92,15 +93,21 @@ class GitDiff {
                     end: start + count,
                 }));
 
-            return { filePath, addedRanges };
+            return {
+                filePath,
+                isFileNew: ADDED_FILE_REGEX.test(fileHeader),
+                addedRanges,
+            };
         })
         // Deleted and binary files have no new path.
         .filter(({ filePath }) => filePath !== undefined)
-        .reduce((files, { filePath, addedRanges }) => new Map([...files, [filePath, addedRanges]]), new Map());
+        .reduce((files, { filePath, isFileNew, addedRanges }) => new Map([...files, [filePath, { isFileNew, addedRanges }]]), new Map());
     }
 
+    isFileNew = filePath => this.files.get(filePath)?.isFileNew === true;
+
     isLineNew = (filePath, line) => this.files.get(filePath)
-        ?.some(({ start, end }) => line >= start && line < end) === true;
+        ?.addedRanges.some(({ start, end }) => line >= start && line < end) === true;
 }
 
 const getGithubEvent = () => JSON.parse(Fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
