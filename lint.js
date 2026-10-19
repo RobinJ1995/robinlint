@@ -18,6 +18,8 @@ const EDITORCONFIG_CHECKER_DIR = Path.join(ACTION_DIR, 'node_modules', 'editorco
 const EDITORCONFIG_CHECKER_CONFIG = Path.join(ACTION_DIR, 'editorconfig-checker.json');
 const EDITORCONFIG_EXEMPT_CONFIG = Path.join(ACTION_DIR, 'editorconfig-exempt', 'sgconfig.yml');
 const INDENTATION_ERROR = /^wrong (indentation type|indent style|amount of left-padding)/;
+// <rule>-<language>, e.g. braces-javascript
+const RULE_ID_REGEX = /^(?<rule>.+)-[a-z]+$/;
 
 const loadConfig = () => {
     const defaults = Yaml.parse(Fs.readFileSync(DEFAULT_CONFIG_FILE, 'utf8'));
@@ -56,13 +58,12 @@ const listFiles = (root, exclude) => {
     }
 };
 
-const runAstGrep = (root, files, rules) => {
+const runAstGrep = (root, files) => {
     const astGrepProcess = spawnSync(
         AST_GREP,
         [
             'scan',
             '--config', Path.join(ACTION_DIR, 'sgconfig.yml'),
-            '--filter', `^(?:${rules.join('|')})-[a-z]+$`,
             '--json=stream',
             ...files
         ],
@@ -79,15 +80,22 @@ const runAstGrep = (root, files, rules) => {
         throw new Error(`${AST_GREP} exited with status ${astGrepProcess.status}:\n${astGrepProcess.stderr}`);
     }
 
-    const findings = astGrepProcess.stdout.split('\n')
+    return astGrepProcess.stdout.split('\n')
         .filter(x => !!x)
-        .map(JSON.parse);
-    findings.forEach(match => {
-        const { line, column } = match.range.start;
-        console.log(`${match.file}:${line + 1}:${column + 1}: ${match.severity}[${match.ruleId}]: ${match.message}`);
-    });
+        .map(JSON.parse)
+        .map(match => {
+            // ast-grep counts lines and columns from 0.
+            const line = match.range.start.line + 1;
+            const column = match.range.start.column + 1;
 
-    return findings.every(match => match.severity !== 'error');
+            return {
+                rule: match.ruleId.match(RULE_ID_REGEX).groups.rule,
+                file: match.file,
+                line,
+                output: `${match.file}:${line}:${column}: ${match.severity}[${match.ruleId}]: ${match.message}`,
+                isError: match.severity === 'error'
+            };
+        });
 };
 
 const linesInsideCommentsAndStrings = (files, root) => {
@@ -149,7 +157,8 @@ const setUpEditorconfigChecker = () => {
     return Path.join(EDITORCONFIG_CHECKER_DIR, 'bin', unpacked);
 };
 
-const checkEditorconfig = (files, root) => {
+const runEditorconfigChecker = (root, files) => {
+    ensureEditorconfig(root);
     const exemptRanges = linesInsideCommentsAndStrings(files, root);
     const editorconfigCheckerBinary = setUpEditorconfigChecker();
     const editorconfigProcess = spawnSync(
@@ -176,16 +185,21 @@ const checkEditorconfig = (files, root) => {
         throw new Error(`Could not parse ${editorconfigCheckerBinary} output:\n${editorconfigProcess.stdout}`);
     }
 
-    const errors = reported.filter(([, file, line, message]) => {
-        const exempt = exemptRanges.some((range) => {
-            return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
-        });
+    return reported
+        .filter(([, file, line, message]) => {
+            const exempt = exemptRanges.some((range) => {
+                return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
+            });
 
-        return !(INDENTATION_ERROR.test(message) && (exempt || isBlankLine(root, file, line)));
-    });
-    errors.forEach(([output]) => console.log(output));
-
-    return errors.length === 0;
+            return !(INDENTATION_ERROR.test(message) && (exempt || isBlankLine(root, file, line)));
+        })
+        .map(([output, file, line]) => ({
+            rule: 'editorconfig',
+            file,
+            line: Number(line),
+            output,
+            isError: true
+        }));
 };
 
 const ensureEditorconfig = root => {
@@ -204,21 +218,24 @@ const main = () => {
         return 0;
     }
 
-    const astGrepRules = Object.keys(rules).filter((rule) => rule !== 'editorconfig' && rules[rule]);
-    console.log('\n');
-    console.log('> Lint');
-    const astGrepPassed = runAstGrep(root, files, astGrepRules);
-    console.log('\n');
-    console.log(astGrepPassed ? '✅' : '❌');
+    const findings = [
+        ...runAstGrep(root, files),
+        ...runEditorconfigChecker(root, files)
+    ];
+    const enabledRules = Object.keys(rules).filter(rule => rules[rule]);
+    const results = enabledRules.map(rule => {
+        console.log('\n');
+        console.log(`> ${rule}`);
+        const ruleFindings = findings.filter(finding => finding.rule === rule);
+        ruleFindings.forEach(finding => console.log(finding.output));
+        const passed = ruleFindings.every(finding => !finding.isError);
+        console.log('\n');
+        console.log(passed ? '✅' : '❌');
 
-    console.log('\n');
-    console.log('> EditorConfig');
-    ensureEditorconfig(root);
-    const editorconfigPassed = !rules.editorconfig || checkEditorconfig(files, root);
-    console.log('\n');
-    console.log(editorconfigPassed ? '✅' : '❌');
+        return passed;
+    });
 
-    return astGrepPassed && editorconfigPassed ? 0 : 1;
+    return results.every(passed => passed) ? 0 : 1;
 };
 
 process.exitCode = main();
