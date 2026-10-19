@@ -38,6 +38,10 @@ class GitRepo {
 
     catFile = object => this._cmd(['cat-file', '-p', object]);
 
+    hasCommit = sha => spawnSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: this.cwd }).status === 0;
+
+    fetchCommit = sha => this._cmd(['fetch', '--quiet', '--no-tags', '--depth=1', 'origin', sha]);
+
     diff = base => new GitDiff(this._cmd(['-c', 'core.quotePath=false', 'diff', '--unified=0', base]));
 }
 
@@ -111,8 +115,12 @@ class PullRequest {
 
     diff = root => {
         const gitRepo = new GitRepo(root);
+        const baseCommit = this.baseCommit(gitRepo);
+        if (!gitRepo.hasCommit(baseCommit)) {
+            gitRepo.fetchCommit(baseCommit);
+        }
 
-        return gitRepo.diff(this.baseCommit(gitRepo));
+        return gitRepo.diff(baseCommit);
     };
 }
 
