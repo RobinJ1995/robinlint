@@ -6,11 +6,11 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const Git = require('./git');
+const { GitDiff, GitRepo, PullRequest } = require('./git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
-const MODES = [true, false];
+const MODES = [true, false, 'only-new'];
 const AST_GREP = Path.join(ACTION_DIR, 'node_modules', '.bin', 'ast-grep');
 const EDITORCONFIG_CHECKER_WRAPPER = Path.join(ACTION_DIR, 'node_modules', '.bin', 'editorconfig-checker');
 const EDITORCONFIG_CHECKER_VERSION = 'v4.0.2';
@@ -41,10 +41,11 @@ const listFiles = (root, exclude) => {
     Fs.writeFileSync(excludeFile, patterns);
 
     try {
+        const gitRepo = new GitRepo(root);
         const splitNul = (output) => output.split('\0').filter(Boolean);
-        const excluded = new Set(splitNul(new Git(root).lsIgnoredFiles(excludeFile)));
+        const excluded = new Set(splitNul(gitRepo.lsIgnoredFiles(excludeFile)));
 
-        return splitNul(new Git(root).lsFiles())
+        return splitNul(gitRepo.lsFiles())
             .filter((file) => !excluded.has(file))
             .filter((file) => {
                 const stats = Fs.lstatSync(Path.join(root, file), { throwIfNoEntry: false });
@@ -55,7 +56,7 @@ const listFiles = (root, exclude) => {
     }
 };
 
-const runAstGrep = (root, files, rules) => {
+const runAstGrep = (root, files, rules, diff) => {
     const astGrepProcess = spawnSync(
         AST_GREP,
         [
@@ -80,13 +81,29 @@ const runAstGrep = (root, files, rules) => {
 
     const findings = astGrepProcess.stdout.split('\n')
         .filter(x => !!x)
-        .map(JSON.parse);
+        .map(JSON.parse)
+        .filter(match => {
+            // ast-grep counts lines from 0, git from 1.
+            const line = match.range.start.line + 1;
+
+            return diff === undefined || diff.isLineNew(match.file, line);
+        });
     findings.forEach(match => {
         const { line, column } = match.range.start;
         console.log(`${match.file}:${line + 1}:${column + 1}: ${match.severity}[${match.ruleId}]: ${match.message}`);
     });
 
     return findings.every(match => match.severity !== 'error');
+};
+
+const checkAstGrep = (root, files, modes, diff) => {
+    const rulesEnabledForMode = mode => Object.keys(modes).filter(rule => modes[rule] === mode);
+    const allLinesRules = rulesEnabledForMode(true);
+    const newLinesRules = rulesEnabledForMode('only-new');
+    const allLinesPassed = allLinesRules.length === 0 || runAstGrep(root, files, allLinesRules);
+    const newLinesPassed = newLinesRules.length === 0 || runAstGrep(root, files, newLinesRules, diff);
+
+    return allLinesPassed && newLinesPassed;
 };
 
 const linesInsideCommentsAndStrings = (files, root) => {
@@ -196,24 +213,29 @@ const ensureEditorconfig = root => {
 
 const main = () => {
     const { exclude, rules } = loadConfig();
-    const root = new Git(process.cwd()).showTopLevel();
+    const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
+    const pullRequest = PullRequest.load();
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
         return 0;
     }
 
-    const astGrepRules = Object.keys(rules).filter((rule) => rule !== 'editorconfig' && rules[rule]);
+    const { editorconfig, ...astGrepModes } = rules;
+    const usesOnlyNew = Object.values(rules).includes('only-new');
+    // Outside pull requests nothing is new, so only-new rules find nothing.
+    const diff = pullRequest !== null && usesOnlyNew ? pullRequest.diff(root) : new GitDiff('');
+
     console.log('\n');
     console.log('> Lint');
-    const astGrepPassed = runAstGrep(root, files, astGrepRules);
+    const astGrepPassed = checkAstGrep(root, files, astGrepModes, diff);
     console.log('\n');
     console.log(astGrepPassed ? '✅' : '❌');
 
     console.log('\n');
     console.log('> EditorConfig');
     ensureEditorconfig(root);
-    const editorconfigPassed = !rules.editorconfig || checkEditorconfig(files, root);
+    const editorconfigPassed = !editorconfig || checkEditorconfig(files, root);
     console.log('\n');
     console.log(editorconfigPassed ? '✅' : '❌');
 
