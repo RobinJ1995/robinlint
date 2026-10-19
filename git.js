@@ -6,6 +6,7 @@ const HUNK_START_REGEX = /^@@ /m;
 // @@ -<old start>,<old count> +<new start>,<new count> @@
 const HUNK_REGEX = /^@@ -\S+ \+(?<start>\d+)(?:,(?<count>\d+))? @@/gm;
 const NEW_FILE_PATH_REGEX = /^\+\+\+ b\/(?<path>.*?)\t?$/m;
+const ZERO_SHA_REGEX = /^0+$/;
 
 class GitRepo {
     constructor(cwd) {
@@ -42,7 +43,19 @@ class GitRepo {
 
     fetchCommit = sha => this._cmd(['fetch', '--quiet', '--no-tags', '--depth=1', 'origin', sha]);
 
-    diff = base => new GitDiff(this._cmd(['-c', 'core.quotePath=false', 'diff', '--unified=0', base]));
+    isShallow = () => this._cmd(['rev-parse', '--is-shallow-repository']).trim() === 'true';
+
+    unshallow = refspec => this._cmd(['fetch', '--quiet', '--no-tags', '--unshallow', 'origin', refspec]);
+
+    mergeBase = (a, b) => this._cmd(['merge-base', a, b]).trim();
+
+    diff = base => {
+        if (!this.hasCommit(base)) {
+            this.fetchCommit(base);
+        }
+
+        return new GitDiff(this._cmd(['-c', 'core.quotePath=false', 'diff', '--unified=0', base]));
+    };
 }
 
 class GitDiff {
@@ -73,6 +86,8 @@ class GitDiff {
         ?.some(({ start, end }) => line >= start && line < end) === true;
 }
 
+const getGithubEvent = () => JSON.parse(Fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+
 class PullRequest {
     constructor(event) {
         this.event = event;
@@ -83,7 +98,7 @@ class PullRequest {
             return null;
         }
 
-        const event = JSON.parse(Fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+        const event = getGithubEvent();
 
         return new PullRequest(event);
     };
@@ -100,28 +115,54 @@ class PullRequest {
         const parents = gitRepo.catFile('HEAD').split('\n')
             .filter(line => line.startsWith('parent '))
             .map(line => line.slice('parent '.length));
-        if (parents.length !== 2) {
-            throw new Error('HEAD is not a merge commit');
-        }
-
         const [baseBranch, prHead] = parents;
-
-        if (prHead !== this.event.pull_request.head.sha) {
-            throw new Error('HEAD is not a merge of PR head');
+        if (parents.length === 2 && prHead === this.event.pull_request.head.sha) {
+            return baseBranch;
         }
 
-        return baseBranch;
-    };
-
-    diff = root => {
-        const gitRepo = new GitRepo(root);
-        const baseCommit = this.baseCommit(gitRepo);
-        if (!gitRepo.hasCommit(baseCommit)) {
-            gitRepo.fetchCommit(baseCommit);
+        // Checked out without merging into the base branch, e.g. at the PR head.
+        const { base } = this.event.pull_request;
+        if (gitRepo.isShallow()) {
+            gitRepo.unshallow(base.sha);
         }
 
-        return gitRepo.diff(baseCommit);
+        return gitRepo.mergeBase(base.sha, 'HEAD');
     };
 }
 
-module.exports = { GitRepo, GitDiff, PullRequest };
+class Push {
+    constructor(event) {
+        this.event = event;
+    }
+
+    static load = () => {
+        if (process.env.GITHUB_EVENT_NAME !== 'push') {
+            return null;
+        }
+
+        const event = getGithubEvent();
+        // A push that deletes a branch adds nothing.
+        if (ZERO_SHA_REGEX.test(event.after)) {
+            return null;
+        }
+
+        return new Push(event);
+    };
+
+    baseCommit = gitRepo => {
+        const { repository, before, after } = this.event;
+        if (!ZERO_SHA_REGEX.test(before)) {
+            return before;
+        }
+
+        // A new branch has no before; it's new from where it split off the default branch.
+        const defaultBranch = `refs/remotes/origin/${repository.default_branch}`;
+        if (gitRepo.isShallow()) {
+            gitRepo.unshallow(`${repository.default_branch}:${defaultBranch}`);
+        }
+
+        return gitRepo.mergeBase(defaultBranch, after);
+    };
+}
+
+module.exports = { GitRepo, GitDiff, PullRequest, Push };
