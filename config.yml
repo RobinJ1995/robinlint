@@ -14,3 +14,4 @@ rules:
   braces-placement: true
   elseif: true
   no-else-after-exit: true
+  no-ads-in-prs: only-new
