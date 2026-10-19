@@ -6,6 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
+const Git = require('./Git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
@@ -17,24 +18,6 @@ const EDITORCONFIG_CHECKER_DIR = Path.join(ACTION_DIR, 'node_modules', 'editorco
 const EDITORCONFIG_CHECKER_CONFIG = Path.join(ACTION_DIR, 'editorconfig-checker.json');
 const EDITORCONFIG_EXEMPT_CONFIG = Path.join(ACTION_DIR, 'editorconfig-exempt', 'sgconfig.yml');
 const INDENTATION_ERROR = /^wrong (indentation type|indent style|amount of left-padding)/;
-
-const git = (cwd, args) => {
-    const gitProcess = spawnSync(
-        'git',
-        args,
-        {
-            cwd,
-            encoding: 'utf8',
-            maxBuffer: 1024 ** 3
-        }
-    );
-
-    if (gitProcess.status !== 0) {
-        throw new Error(`git ${args.join(' ')} failed: ${gitProcess.stderr}`);
-    }
-
-    return gitProcess.stdout;
-};
 
 const loadConfig = () => {
     const defaults = Yaml.parse(Fs.readFileSync(DEFAULT_CONFIG_FILE, 'utf8'));
@@ -59,9 +42,9 @@ const listFiles = (root, exclude) => {
 
     try {
         const splitNul = (output) => output.split('\0').filter(Boolean);
-        const excluded = new Set(splitNul(git(root, ['ls-files', '-z', '-c', '-i', `--exclude-from=${excludeFile}`])));
+        const excluded = new Set(splitNul(new Git(root).lsIgnoredFiles(excludeFile)));
 
-        return splitNul(git(root, ['ls-files', '-z', '-c']))
+        return splitNul(new Git(root).lsFiles())
             .filter((file) => !excluded.has(file))
             .filter((file) => {
                 const stats = Fs.lstatSync(Path.join(root, file), { throwIfNoEntry: false });
@@ -213,7 +196,7 @@ const ensureEditorconfig = root => {
 
 const main = () => {
     const { exclude, rules } = loadConfig();
-    const root = git(process.cwd(), ['rev-parse', '--show-toplevel']).trim();
+    const root = new Git(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
