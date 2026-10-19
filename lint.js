@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const Git = require('./Git');
+const Git = require('./git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
