@@ -39,7 +39,9 @@ const lintRepo = (repo, exclude = '', rules = '') => {
             env: {
                 ...process.env,
                 EXCLUDE: exclude,
-                RULES: rules
+                RULES: rules,
+                // CI runs these tests in its own pull_request event.
+                GITHUB_EVENT_NAME: ''
             }
         }
     );
@@ -361,4 +363,178 @@ test('every ast-grep rule can be configured', () => {
             Assert.ok(rule in defaults, `${rule} (${file}) is missing from config.yml`);
         });
     });
+});
+
+const GIT_IDENTITY = {
+    GIT_AUTHOR_NAME: 'Robin Jacobs',
+    GIT_AUTHOR_EMAIL: 'dummy@pingwing.be',
+    GIT_COMMITTER_NAME: 'Robin Jacobs',
+    GIT_COMMITTER_EMAIL: 'dummy@pingwing.be'
+};
+
+const gitIn = (repo, args) => {
+    const gitProcess = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: { ...process.env, ...GIT_IDENTITY }
+    });
+    Assert.equal(gitProcess.status, 0, gitProcess.stderr);
+
+    return gitProcess.stdout.trim();
+};
+
+const commitFiles = (repo, files) => {
+    Object.entries(files).forEach(([name, content]) =>
+        Fs.writeFileSync(Path.join(repo, name), content)
+    );
+    gitIn(repo, ['add', '-A']);
+    gitIn(repo, ['commit', '-q', '-m', 'change']);
+
+    return gitIn(repo, ['rev-parse', 'HEAD']);
+};
+
+const lintEvent = ({ repo, eventName, event, rules }) => {
+    const eventPath = Path.join(repo, '..', `${Path.basename(repo)}-event.json`);
+    Fs.writeFileSync(eventPath, JSON.stringify(event));
+
+    const lintProcess = spawnSync('node', [LINT_SCRIPT_PATH], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: {
+            ...process.env,
+            RULES: rules,
+            GITHUB_EVENT_NAME: eventName,
+            GITHUB_EVENT_PATH: eventPath
+        }
+    });
+
+    return {
+        status: lintProcess.status,
+        output: lintProcess.stdout + lintProcess.stderr
+    };
+};
+
+const BASE_FILES = {
+    'code.js': `function f(x) {
+    if (x) return 1;
+    return 2;
+}
+`
+};
+const PR_FILES = {
+    'code.js': `${BASE_FILES['code.js']}
+function g(y) {
+    if (y) return 3;
+    return 4;
+}
+`
+};
+
+test('only-new rules check only the lines a pull request adds', () => {
+    const repo = gibRepo({});
+    const base = commitFiles(repo, BASE_FILES);
+    gitIn(repo, ['switch', '-q', '-c', 'pr']);
+    const head = commitFiles(repo, PR_FILES);
+    gitIn(repo, ['switch', '-q', '-']);
+    gitIn(repo, ['merge', '-q', '--no-ff', '-m', 'merge', 'pr']);
+
+    const result = lintEvent({
+        repo,
+        eventName: 'pull_request',
+        event: {
+            pull_request: {
+                base: {
+                    sha: base
+                },
+                head: {
+                    sha: head
+                }
+            }
+        },
+        rules: 'braces: only-new\n'
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+});
+
+test('only-new rules check only the lines a pull request checked out at its head adds', () => {
+    const repo = gibRepo({});
+    const base = commitFiles(repo, BASE_FILES);
+    gitIn(repo, ['switch', '-q', '-c', 'pr']);
+    const head = commitFiles(repo, PR_FILES);
+
+    const result = lintEvent({
+        repo,
+        eventName: 'pull_request',
+        event: {
+            pull_request: {
+                base: {
+                    sha: base
+                },
+                head: {
+                    sha: head
+                }
+            }
+        },
+        rules: 'braces: only-new\n'
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+});
+
+test('only-new rules check only the lines a push adds', () => {
+    const repo = gibRepo({});
+    const before = commitFiles(repo, BASE_FILES);
+    const after = commitFiles(repo, PR_FILES);
+
+    const result = lintEvent({
+        repo,
+        eventName: 'push',
+        event: {
+            before,
+            after
+        },
+        rules: 'braces: only-new\n'
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+});
+
+test('only-new rules check only the lines a new branch adds', () => {
+    const repo = gibRepo({});
+    const base = commitFiles(repo, BASE_FILES);
+    gitIn(repo, ['update-ref', 'refs/remotes/origin/master', base]);
+    gitIn(repo, ['switch', '-q', '-c', 'new']);
+    const after = commitFiles(repo, PR_FILES);
+
+    const result = lintEvent({
+        repo,
+        eventName: 'push',
+        event: {
+            repository: {
+                default_branch: 'master'
+            },
+            before: '0'.repeat(40),
+            after
+        },
+        rules: 'braces: only-new\n'
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+});
+
+test('only-new rules check only the lines the latest commit adds outside pull requests and pushes', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, BASE_FILES);
+    commitFiles(repo, PR_FILES);
+
+    const result = lintRepo(repo, '', 'braces: only-new\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+});
+
+test('only-new rules check every line before the first commit', () => {
+    const result = lintRepo(gibRepo(PR_FILES), '', 'braces: only-new\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.deepEqual(findings(result.output), ['code.js:2 braces-javascript', 'code.js:7 braces-javascript'], result.output);
 });

@@ -39,7 +39,24 @@ class GitRepo {
 
     catFile = object => this._cmd(['cat-file', '-p', object]);
 
-    hasCommit = sha => spawnSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: this.cwd }).status === 0;
+    hasObject = sha => spawnSync('git', ['cat-file', '-e', sha], { cwd: this.cwd }).status === 0;
+
+    parents = commit => this.catFile(commit).split('\n')
+        .filter(line => line.startsWith('parent '))
+        .map(line => line.slice('parent '.length));
+
+    emptyTree = () => this._cmd(['hash-object', '-t', 'tree', '/dev/null']).trim();
+
+    // Before the first commit, and for the first commit itself, everything is new.
+    firstParent = commit => {
+        if (!this.hasObject(commit)) {
+            return this.emptyTree();
+        }
+
+        const [firstParent] = this.parents(commit);
+
+        return firstParent ?? this.emptyTree();
+    };
 
     fetchCommit = sha => this._cmd(['fetch', '--quiet', '--no-tags', '--depth=1', 'origin', sha]);
 
@@ -50,7 +67,7 @@ class GitRepo {
     mergeBase = (a, b) => this._cmd(['merge-base', a, b]).trim();
 
     diff = base => {
-        if (!this.hasCommit(base)) {
+        if (!this.hasObject(base)) {
             this.fetchCommit(base);
         }
 
@@ -112,9 +129,7 @@ class PullRequest {
         committer GitHub <…> 1760000000 +0000
         Merge a91c… into 4f2e…
         */
-        const parents = gitRepo.catFile('HEAD').split('\n')
-            .filter(line => line.startsWith('parent '))
-            .map(line => line.slice('parent '.length));
+        const parents = gitRepo.parents('HEAD');
         const [baseBranch, prHead] = parents;
         if (parents.length === 2 && prHead === this.event.pull_request.head.sha) {
             return baseBranch;
