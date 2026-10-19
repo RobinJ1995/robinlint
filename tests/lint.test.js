@@ -1,9 +1,11 @@
 const { test } = require('node:test');
 const Assert = require('node:assert/strict');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const Fs = require('node:fs');
+const Http = require('node:http');
 const Os = require('node:os');
 const Path = require('node:path');
+const { text } = require('node:stream/consumers');
 const Yaml = require('yaml');
 
 const LINT_SCRIPT_PATH = Path.join(__dirname, '..', 'lint.js');
@@ -393,25 +395,48 @@ const commitFiles = (repo, files) => {
     return gitIn(repo, ['rev-parse', 'HEAD']);
 };
 
-const lintPullRequest = ({ repo, pullRequest, rules }) => {
-    const eventPath = Path.join(repo, '..', `${Path.basename(repo)}-event.json`);
-    Fs.writeFileSync(eventPath, JSON.stringify({ pull_request: pullRequest }));
+const REPOSITORY = 'someone/repo';
 
-    const lintProcess = spawnSync('node', [LINT_SCRIPT_PATH], {
-        cwd: repo,
-        encoding: 'utf8',
-        env: {
-            ...process.env,
-            RULES: rules,
-            GITHUB_EVENT_NAME: 'pull_request',
-            GITHUB_EVENT_PATH: eventPath
-        }
+// Against a fake GitHub API that only knows the given routes.
+const lintPullRequest = async ({ repo, pullRequest, routes, rules }) => {
+    const server = Http.createServer((request, response) => {
+        const route = routes[new URL(request.url, 'http://localhost').pathname];
+        response.writeHead(route === undefined ? 404 : 200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(route ?? {}));
     });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 
-    return {
-        status: lintProcess.status,
-        output: lintProcess.stdout + lintProcess.stderr
-    };
+    const eventPath = Path.join(repo, '..', `${Path.basename(repo)}-event.json`);
+    Fs.writeFileSync(eventPath, JSON.stringify({
+        repository: { full_name: REPOSITORY },
+        pull_request: pullRequest
+    }));
+
+    try {
+        const lintProcess = spawn('node', [LINT_SCRIPT_PATH], {
+            cwd: repo,
+            env: {
+                ...process.env,
+                RULES: rules,
+                GITHUB_EVENT_NAME: 'pull_request',
+                GITHUB_EVENT_PATH: eventPath,
+                GITHUB_API_URL: `http://127.0.0.1:${server.address().port}`,
+                GITHUB_TOKEN: ''
+            }
+        });
+        const [stdout, stderr, status] = await Promise.all([
+            text(lintProcess.stdout),
+            text(lintProcess.stderr),
+            new Promise(resolve => lintProcess.on('close', resolve))
+        ]);
+
+        return {
+            status,
+            output: stdout + stderr
+        };
+    } finally {
+        server.close();
+    }
 };
 
 test('only-new rules are skipped outside pull requests', () => {
@@ -456,27 +481,42 @@ function g(y) {
     'new.txt': 'no final newline'
 };
 
-test('only-new rules check only the lines a pull request adds', () => {
-    const repo = gibRepo({});
-    commitFiles(repo, BASE_FILES);
-    gitIn(repo, ['switch', '-q', '-c', 'pr']);
-    const head = commitFiles(repo, PR_FILES);
-    gitIn(repo, ['switch', '-q', '-']);
-    gitIn(repo, ['merge', '-q', '--no-ff', '-m', 'merge', 'pr']);
+[
+    { checkout: 'merged into its base branch, as actions/checkout does', merged: true },
+    { checkout: 'at its head', merged: false }
+].forEach(({ checkout, merged }) => {
+    test(`only-new rules check only the lines a pull request adds, checked out ${checkout}`, async () => {
+        const repo = gibRepo({});
+        const base = commitFiles(repo, BASE_FILES);
+        gitIn(repo, ['switch', '-q', '-c', 'pr']);
+        const head = commitFiles(repo, PR_FILES);
+        if (merged) {
+            gitIn(repo, ['switch', '-q', '-']);
+            gitIn(repo, ['merge', '-q', '--no-ff', '-m', 'merge', 'pr']);
+        }
 
-    const result = lintPullRequest({
-        repo,
-        pullRequest: {
-            head: {
-                sha: head
-            }
-        },
-        rules: 'editorconfig: only-new\nbraces: only-new\n'
+        // Only checkouts that aren't merged need the GitHub API.
+        const routes = merged
+            ? {}
+            : { [`/repos/${REPOSITORY}/compare/${base}...${head}`]: { merge_base_commit: { sha: base } } };
+        const result = await lintPullRequest({
+            repo,
+            pullRequest: {
+                base: {
+                    sha: base
+                },
+                head: {
+                    sha: head
+                }
+            },
+            routes,
+            rules: 'editorconfig: only-new\nbraces: only-new\n'
+        });
+        Assert.equal(result.status, 1, result.output);
+        Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+        Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
+        Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
+        Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
+        Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
     });
-    Assert.equal(result.status, 1, result.output);
-    Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
-    Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
-    Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
-    Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
-    Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
 });

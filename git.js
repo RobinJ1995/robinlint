@@ -1,5 +1,6 @@
 const { spawnSync } = require('node:child_process');
 const Fs = require('node:fs');
+const { github } = require('./github');
 
 const FILE_DIFF_START_REGEX = /^diff --git /m;
 const HUNK_START_REGEX = /^@@ /m;
@@ -44,6 +45,8 @@ class GitRepo {
     fetchCommit = sha => this._cmd(['fetch', '--quiet', '--no-tags', '--depth=1', 'origin', sha]);
 
     diff = base => new GitDiff(this._cmd(['-c', 'core.quotePath=false', 'diff', '--unified=0', base]));
+
+    head = () => this._cmd(['rev-parse', 'HEAD']).trim();
 }
 
 class GitDiff {
@@ -102,7 +105,7 @@ class PullRequest {
         return new PullRequest(event);
     };
 
-    baseCommit = gitRepo => {
+    baseCommit = async gitRepo => {
         /*
         tree 9b1c…
         parent 4f2e…         first parent; base branch
@@ -114,22 +117,21 @@ class PullRequest {
         const parents = gitRepo.catFile('HEAD').split('\n')
             .filter(line => line.startsWith('parent '))
             .map(line => line.slice('parent '.length));
-        if (parents.length !== 2) {
-            throw new Error('HEAD is not a merge commit');
-        }
-
         const [baseBranch, prHead] = parents;
-
-        if (prHead !== this.event.pull_request.head.sha) {
-            throw new Error('HEAD is not a merge of PR head');
+        if (parents.length === 2 && prHead === this.event.pull_request.head.sha) {
+            return baseBranch;
         }
 
-        return baseBranch;
+        // Checked out without merging into the base branch, e.g. at the PR head.
+        const { repository, pull_request: { base } } = this.event;
+        const comparison = await github(`/repos/${repository.full_name}/compare/${base.sha}...${gitRepo.head()}?per_page=1`);
+
+        return comparison.merge_base_commit.sha;
     };
 
-    diff = root => {
+    diff = async root => {
         const gitRepo = new GitRepo(root);
-        const baseCommit = this.baseCommit(gitRepo);
+        const baseCommit = await this.baseCommit(gitRepo);
         if (!gitRepo.hasCommit(baseCommit)) {
             gitRepo.fetchCommit(baseCommit);
         }

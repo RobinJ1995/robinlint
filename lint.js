@@ -213,7 +213,7 @@ const ensureEditorconfig = root => {
     }
 };
 
-const main = () => {
+const main = async () => {
     const { exclude, rules } = loadConfig();
     const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
@@ -226,7 +226,7 @@ const main = () => {
     const { editorconfig, ...astGrepModes } = rules;
     const usesOnlyNew = Object.values(rules).includes('only-new');
     // Outside pull requests nothing is new, so only-new rules find nothing.
-    const diff = pullRequest !== null && usesOnlyNew ? pullRequest.diff(root) : new GitDiff('');
+    const diff = pullRequest !== null && usesOnlyNew ? await pullRequest.diff(root) : new GitDiff('');
 
     console.log('\n');
     console.log('> Lint');
@@ -244,4 +244,6 @@ const main = () => {
     return astGrepPassed && editorconfigPassed ? 0 : 1;
 };
 
-process.exitCode = main();
+main().then(exitCode => {
+    process.exitCode = exitCode;
+});
