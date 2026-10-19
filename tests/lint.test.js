@@ -416,12 +416,16 @@ const lintPullRequest = ({ repo, pullRequest, rules }) => {
 
 test('only-new rules are skipped outside pull requests', () => {
     const rules = [
+        'editorconfig',
         'braces',
         'braces-placement',
         'elseif',
         'no-else-after-exit'
     ].map(rule => `${rule}: only-new\n`).join('');
-    const result = lintRepo(gibRepo({ 'bad.js': sample('javascript', 'bad.js') }), '', rules);
+    const result = lintRepo(gibRepo({
+        'bad.js': sample('javascript', 'bad.js'),
+        'tabs.txt': 'a\n\tb\n'
+    }), '', rules);
     Assert.equal(result.status, 0, result.output);
 });
 
@@ -430,6 +434,12 @@ const BASE_FILES = {
     if (x) return 1;
     return 2;
 }
+`,
+    'tabs.txt': `a
+\tb
+`,
+    'crlf.txt': `a\r
+b\r
 `
 };
 const PR_FILES = {
@@ -438,7 +448,12 @@ function g(y) {
     if (y) return 3;
     return 4;
 }
-`
+`,
+    'tabs.txt': `${BASE_FILES['tabs.txt']}\tc
+`,
+    'crlf.txt': `${BASE_FILES['crlf.txt']}c\r
+`,
+    'new.txt': 'no final newline'
 };
 
 test('only-new rules check only the lines a pull request adds', () => {
@@ -456,8 +471,12 @@ test('only-new rules check only the lines a pull request adds', () => {
                 sha: head
             }
         },
-        rules: 'braces: only-new\n'
+        rules: 'editorconfig: only-new\nbraces: only-new\n'
     });
     Assert.equal(result.status, 1, result.output);
     Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
+    Assert.match(result.output, /^tabs\.txt:3:0: error: wrong indent style/m);
+    Assert.doesNotMatch(result.output, /^tabs\.txt:2:/m);
+    Assert.doesNotMatch(result.output, /^crlf\.txt:/m);
+    Assert.match(result.output, /^new\.txt:0:0: error: wrong line endings or no final newline/m);
 });

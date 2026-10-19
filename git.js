@@ -6,6 +6,7 @@ const HUNK_START_REGEX = /^@@ /m;
 // @@ -<old start>,<old count> +<new start>,<new count> @@
 const HUNK_REGEX = /^@@ -\S+ \+(?<start>\d+)(?:,(?<count>\d+))? @@/gm;
 const NEW_FILE_PATH_REGEX = /^\+\+\+ b\/(?<path>.*?)\t?$/m;
+const ADDED_FILE_REGEX = /^--- \/dev\/null$/m;
 
 class GitRepo {
     constructor(cwd) {
@@ -58,15 +59,28 @@ class GitDiff {
                     end: start + count,
                 }));
 
-            return { filePath, addedRanges };
+            return {
+                filePath,
+                isNew: ADDED_FILE_REGEX.test(fileHeader),
+                addedRanges,
+            };
         })
         // Deleted and binary files have no new path.
         .filter(({ filePath }) => filePath !== undefined)
-        .reduce((files, { filePath, addedRanges }) => new Map([...files, [filePath, addedRanges]]), new Map());
+        .reduce((files, { filePath, isNew, addedRanges }) => new Map([...files, [filePath, { isNew, addedRanges }]]), new Map());
     }
 
-    isLineNew = (filePath, line) => this.files.get(filePath)
-        ?.some(({ start, end }) => line >= start && line < end) === true;
+    isLineNew = (filePath, line) => {
+        const file = this.files.get(filePath);
+        if (file === undefined) {
+            return false;
+        } else if (line === 0) {
+            // Line 0 is a file-wide error, which is only new in a new file.
+            return file.isNew;
+        }
+
+        return file.addedRanges.some(({ start, end }) => line >= start && line < end);
+    };
 }
 
 class PullRequest {

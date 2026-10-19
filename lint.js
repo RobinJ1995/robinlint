@@ -165,7 +165,7 @@ const setUpEditorconfigChecker = () => {
     return Path.join(EDITORCONFIG_CHECKER_DIR, 'bin', unpacked);
 };
 
-const checkEditorconfig = (files, root) => {
+const checkEditorconfig = (files, root, mode, diff) => {
     const exemptRanges = linesInsideCommentsAndStrings(files, root);
     const editorconfigCheckerBinary = setUpEditorconfigChecker();
     const editorconfigProcess = spawnSync(
@@ -192,13 +192,15 @@ const checkEditorconfig = (files, root) => {
         throw new Error(`Could not parse ${editorconfigCheckerBinary} output:\n${editorconfigProcess.stdout}`);
     }
 
-    const errors = reported.filter(([, file, line, message]) => {
-        const exempt = exemptRanges.some((range) => {
-            return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
-        });
+    const errors = reported
+        .filter(([, file, line, message]) => {
+            const exempt = exemptRanges.some((range) => {
+                return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
+            });
 
-        return !(INDENTATION_ERROR.test(message) && (exempt || isBlankLine(root, file, line)));
-    });
+            return !(INDENTATION_ERROR.test(message) && (exempt || isBlankLine(root, file, line)));
+        })
+        .filter(([, file, line]) => mode === true || diff.isLineNew(file, Number(line)));
     errors.forEach(([output]) => console.log(output));
 
     return errors.length === 0;
@@ -235,7 +237,7 @@ const main = () => {
     console.log('\n');
     console.log('> EditorConfig');
     ensureEditorconfig(root);
-    const editorconfigPassed = !editorconfig || checkEditorconfig(files, root);
+    const editorconfigPassed = !editorconfig || checkEditorconfig(files, root, editorconfig, diff);
     console.log('\n');
     console.log(editorconfigPassed ? '✅' : '❌');
 
