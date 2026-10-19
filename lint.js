@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const Git = require('./git');
+const { GitRepo } = require('./git');
 
 const ACTION_DIR = __dirname;
 const DEFAULT_CONFIG_FILE = Path.join(ACTION_DIR, 'config.yml');
@@ -41,10 +41,11 @@ const listFiles = (root, exclude) => {
     Fs.writeFileSync(excludeFile, patterns);
 
     try {
+        const gitRepo = new GitRepo(root);
         const splitNul = (output) => output.split('\0').filter(Boolean);
-        const excluded = new Set(splitNul(new Git(root).lsIgnoredFiles(excludeFile)));
+        const excluded = new Set(splitNul(gitRepo.lsIgnoredFiles(excludeFile)));
 
-        return splitNul(new Git(root).lsFiles())
+        return splitNul(gitRepo.lsFiles())
             .filter((file) => !excluded.has(file))
             .filter((file) => {
                 const stats = Fs.lstatSync(Path.join(root, file), { throwIfNoEntry: false });
@@ -196,7 +197,7 @@ const ensureEditorconfig = root => {
 
 const main = () => {
     const { exclude, rules } = loadConfig();
-    const root = new Git(process.cwd()).showTopLevel();
+    const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
     console.log(`Checking ${files.length} files in ${root}...`);
     if (files.length === 0) {
