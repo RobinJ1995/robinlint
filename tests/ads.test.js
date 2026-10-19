@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const Assert = require('node:assert/strict');
-const { isPRAd } = require('../ads');
+const { isPRAd, isCommitAd } = require('../ads');
 
 test('Claude Code footers', () => {
     Assert.ok(isPRAd('🤖 Generated with [Claude Code](https://claude.com/claude-code)'));
@@ -56,4 +56,16 @@ test('people mentioning the tools are not ads', () => {
     Assert.ok(!isPRAd('Built by a Codex Cloud task: https://chatgpt.com/codex/tasks/task_e_0123456789abcdef0123456789abcdef'));
     Assert.ok(!isPRAd('Each play now records `source_session_id`, on top of `claude/stripe-1-schema`.'));
     Assert.ok(!isPRAd('Co-authored-by: Alice <alice@example.com>'));
+});
+
+test('commit message ads', () => {
+    Assert.ok(isCommitAd('🤖 Generated with [Claude Code](https://claude.com/claude-code)'));
+    Assert.ok(isCommitAd('https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrStUv'));
+    Assert.ok(isCommitAd('Made-with: Cursor'));
+    Assert.ok(isCommitAd('Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'));
+});
+
+test('commit message metadata trailers are not ads', () => {
+    Assert.ok(!isCommitAd('Claude-Session: https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrStUv'));
+    Assert.ok(!isCommitAd('Amp-Thread-ID: https://ampcode.com/threads/T-01234567-89ab-cdef-0123-456789abcdef'));
 });

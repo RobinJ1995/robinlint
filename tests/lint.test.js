@@ -383,12 +383,12 @@ const gitIn = (repo, args) => {
     return gitProcess.stdout.trim();
 };
 
-const commitFiles = (repo, files) => {
+const commitFiles = (repo, files, message = 'change') => {
     Object.entries(files).forEach(([name, content]) =>
         Fs.writeFileSync(Path.join(repo, name), content)
     );
     gitIn(repo, ['add', '-A']);
-    gitIn(repo, ['commit', '-q', '-m', 'change']);
+    gitIn(repo, ['commit', '-q', '-m', message]);
 
     return gitIn(repo, ['rev-parse', 'HEAD']);
 };
@@ -678,4 +678,75 @@ test('pull_request_target events are not checked as a pull request', () => {
         body: '🤖 Generated with [Claude Code](https://claude.com/claude-code)'
     });
     Assert.equal(result.status, 0, result.output);
+});
+
+const AD_COMMIT_MESSAGE = `fix thing
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`;
+
+test('commits without ads pass', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' }, `fix thing
+
+Co-authored-by: Alice <alice@example.com>`);
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('an ad in the latest commit message fails', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    const sha = commitFiles(repo, { 'b.txt': 'b\n' }, AD_COMMIT_MESSAGE);
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} message: error: ${AD_ERROR}`), result.output);
+});
+
+test('only-new commit checks skip ads in older commits', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' }, AD_COMMIT_MESSAGE);
+    commitFiles(repo, { 'b.txt': 'b\n' });
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('no-ads-in-commits: true checks every commit', () => {
+    const repo = gibRepo({});
+    const sha = commitFiles(repo, { 'a.txt': 'a\n' }, AD_COMMIT_MESSAGE);
+    commitFiles(repo, { 'b.txt': 'b\n' });
+
+    const result = lintRepo(repo, '', 'no-ads-in-commits: true\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} message: error: ${AD_ERROR}`), result.output);
+});
+
+test('an ad in a pull request commit fails', () => {
+    const repo = gibRepo({});
+    const base = commitFiles(repo, { 'a.txt': 'a\n' });
+    gitIn(repo, ['switch', '-q', '-c', 'pr']);
+    commitFiles(repo, { 'b.txt': 'b\n' }, AD_COMMIT_MESSAGE);
+    const head = commitFiles(repo, { 'c.txt': 'c\n' });
+
+    const result = lintEvent({
+        repo,
+        eventName: 'pull_request',
+        event: {
+            pull_request: {
+                base: {
+                    sha: base
+                },
+                head: {
+                    sha: head
+                }
+            }
+        },
+        rules: ''
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(AD_ERROR), result.output);
 });

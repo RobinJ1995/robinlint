@@ -46,10 +46,22 @@ const PR_AD_RULES = [
     text => [...text.matchAll(CO_AUTHOR_REGEX)].some(({ groups }) => TOOL_CO_AUTHOR_EMAILS.includes(groups.email.toLowerCase()))
 ];
 
+// No Claude-Session or Amp-Thread-ID; in a commit message those trailers are genuine metadata.
+const COMMIT_AD_RULES = [
+    // Claude Code
+    text => /^🤖 Generated with (\[Claude Code\]\(https:\/\/(claude\.com\/claude-code|claude\.ai\/code)\)|Claude Code)$/m.test(text),
+    text => /^https:\/\/claude\.ai\/code\/session_\w+$/m.test(text),
+    // Cursor
+    text => /^Made-with: Cursor$/m.test(text),
+    text => [...text.matchAll(CO_AUTHOR_REGEX)].some(({ groups }) => TOOL_CO_AUTHOR_EMAILS.includes(groups.email.toLowerCase()))
+];
+
 const isPRAd = text => PR_AD_RULES.some(rule => rule(text));
 
-const adsInText = (rule, where, text) => {
-    if (!isPRAd(text ?? '')) {
+const isCommitAd = text => COMMIT_AD_RULES.some(rule => rule(text));
+
+const adsInText = (isAd, rule, where, text) => {
+    if (!isAd(text ?? '')) {
         return [];
     }
 
@@ -57,6 +69,7 @@ const adsInText = (rule, where, text) => {
         rule,
         file: null,
         line: null,
+        commit: null,
         output: `${where}: error: ${AD_ERROR}`,
         isError: true
     }];
@@ -70,9 +83,17 @@ const adsInPRBody = pullRequest => {
     const { title, body } = pullRequest.event.pull_request;
 
     return [
-        ...adsInText('no-ads-in-prs', 'PR title', title),
-        ...adsInText('no-ads-in-prs', 'PR description', body)
+        ...adsInText(isPRAd, 'no-ads-in-prs', 'PR title', title),
+        ...adsInText(isPRAd, 'no-ads-in-prs', 'PR description', body)
     ];
 };
 
-module.exports = { isPRAd, adsInPRBody };
+const adsInCommits = commits => commits.flatMap(commit =>
+    adsInText(isCommitAd, 'no-ads-in-commits', `commit ${commit.sha.slice(0, 7)} message`, commit.message)
+        .map(finding => ({
+            ...finding,
+            commit: commit.sha
+        }))
+);
+
+module.exports = { isPRAd, isCommitAd, adsInPRBody, adsInCommits };
