@@ -356,7 +356,7 @@ test('unknown rules and modes are refused', () => {
 
 test('every ast-grep rule can be configured', () => {
     const defaults = Yaml.parse(Fs.readFileSync(Path.join(__dirname, '..', 'config.yml'), 'utf8')).rules;
-    const rulesDir = Path.join(__dirname, '..', 'rules');
+    const rulesDir = Path.join(__dirname, '..', 'rules', 'ast-grep', 'rules');
     Fs.readdirSync(rulesDir).forEach((file) => {
         Yaml.parseAllDocuments(Fs.readFileSync(Path.join(rulesDir, file), 'utf8')).forEach((document) => {
             const rule = document.get('id').replace(/-[a-z]+$/, '');

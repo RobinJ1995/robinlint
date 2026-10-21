@@ -12,13 +12,12 @@ const AD_RULES = [
     text => /^Co-authored-by: .+ <(noreply@anthropic\.com|noreply@openai\.com|codex@openai\.com|cursoragent@cursor\.com)>$/im.test(text)
 ];
 
-const adsInText = (rule, where, text) => {
+const adsInText = (where, text) => {
     if (!AD_RULES.some(isAd => isAd(text ?? ''))) {
         return [];
     }
 
     return [{
-        rule,
         file: null,
         line: null,
         output: `${where}: error: ${AD_ERROR}`,
@@ -26,17 +25,4 @@ const adsInText = (rule, where, text) => {
     }];
 };
 
-const adsInPRBody = pullRequest => {
-    if (pullRequest === null) {
-        return [];
-    }
-
-    const { title, body } = pullRequest.event.pull_request;
-
-    return [
-        ...adsInText('no-ads-in-prs', 'PR title', title),
-        ...adsInText('no-ads-in-prs', 'PR description', body)
-    ];
-};
-
-module.exports = { adsInPRBody };
+module.exports = { adsInText };
