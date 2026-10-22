@@ -867,6 +867,9 @@ valid:
   - 'a.Select(x => new Foo(x));'
   - 'a.Select(x => { return F(x); });'
   - 'button.Click += (s, e) => OnClick(s, e);'
+  - 'a.Select(x => F(x: 1));'
+  - 'a.ForEach(x => F(ref x));'
+  - 'a.ForEach(x => TryParse(out x));'
 invalid:
   - 'a.Select(x => F(x));'
   - 'a.Select((x) => F(x));'
