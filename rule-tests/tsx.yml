@@ -19,8 +19,45 @@ valid:
         e();
     }
   - 'x = a ? b : c;'
+  - |
+    function List({ items }: Props) {
+        return <ul>{items.length > 0 && items.map((item) => <li key={item.id}>{item.name}</li>)}</ul>;
+    }
+  - |
+    function Page({ loading, rows }: Props) {
+        return <main>{loading ? <Spinner /> : <Table rows={rows} />}</main>;
+    }
+  - 'type Label<T> = T extends string ? { label: T } : never;'
+  - |
+    for (const listener of listeners) listener.notify();
+    while (queue.length > 0) queue.shift();
+  - |
+    useEffect(() => {
+        if (open) {
+            inputRef.current?.focus();
+        }
+    }, [open]);
+  - |
+    if (a) {
+        b();
+    }
+    // otherwise fall back to the default
+    else {
+        c();
+    }
 invalid:
   - if (a) b();
+  - |
+    function Profile({ user }: Props) {
+        if (!user) return <Spinner />;
+        return <Card user={user} />;
+    }
+  - |
+    useEffect(() => {
+        if (open) {
+            show();
+        } else return;
+    }, [open]);
   - if (a) return;
   - |
     if (a) {
@@ -95,6 +132,72 @@ valid:
     if (b) {
         y = 1;
     }
+  - |
+    function Users({ users }: Props) {
+        if (!users) {
+            return null;
+        }
+        const sorted = sortBy(users, 'name');
+        if (sorted.length === 0) {
+            return <Empty />;
+        }
+        return <List users={sorted} />;
+    }
+  - |
+    if (open) {
+        setTimeout(() => {
+            return close();
+        }, 300);
+    }
+    if (focused) {
+        blur();
+    }
+  - |
+    if (a) {
+        x();
+    } else if (b) {
+        return;
+    }
+    if (c) {
+        y();
+    }
+  - |
+    if (a) {
+        x();
+    } else {
+        return;
+    }
+    if (b) {
+        y();
+    }
+  - |
+    if (cached) {
+        try {
+            return JSON.parse(cached);
+        } catch {
+            localStorage.removeItem(key);
+        }
+    }
+    if (fallback) {
+        return fallback;
+    }
+  - |
+    useEffect(() => {
+        if (!ref.current) {
+            return;
+        }
+        ref.current.focus();
+    }, []);
+    if (!visible) {
+        return null;
+    }
+  - |
+    const rows = items.map((item) => {
+        if (!item.visible) {
+            return null;
+        }
+        return <Row key={item.id} item={item} />;
+    });
 invalid:
   - |
     if (a) {
@@ -164,6 +267,26 @@ invalid:
   - |
     if (a) return;
     if (b) return;
+  - |
+    function Profile({ user, error }: Props) {
+        if (error) {
+            return <ErrorPage error={error} />;
+        }
+        if (!user) {
+            return <Spinner />;
+        }
+        return <Card user={user} />;
+    }
+  - |
+    const rows = items.map((item) => {
+        if (item.hidden) {
+            return null;
+        }
+        if (item.kind === 'header') {
+            return <Header key={item.id} title={item.title} />;
+        }
+        return <Row key={item.id} item={item} />;
+    });
 ---
 id: braces-placement-tsx
 valid:
@@ -195,6 +318,39 @@ valid:
         b();
     }
   - 'function f() { return { a: 1 }; }'
+  - |
+    if (
+        user.isAdmin &&
+        permissions.includes('write')
+    ) {
+        save();
+    }
+  - |
+    if (isEqual(filters, { status: 'open' })) {
+        reset();
+    }
+  - |
+    if (!data) {
+        return (
+            <div className="empty">
+                {t('empty')}
+            </div>
+        );
+    }
+  - |
+    if (path === `/users/${id}`) {
+        return { ...props, active: true };
+    }
+  - |
+    useEffect(() => { inputRef.current?.focus(); }, []);
+    const close = <button onClick={() => { setOpen(false); }}>Close</button>;
+    try { save(); } catch { retry(); }
+  - |
+    if (a) {
+        b();
+    } else { // fall back to the default
+        c();
+    }
 invalid:
   - if (a) { b(); }
   - if (a) {}
@@ -232,6 +388,17 @@ invalid:
         if (!p.ok) { return <Err />; }
         return <div>{p.a ? <A /> : null}</div>;
     }
+  - |
+    if (
+        user.isAdmin &&
+        permissions.includes('write')
+    )
+    {
+        save();
+    }
+  - |
+    if (open) {
+        return <Modal onClose={close} />; }
 ---
 id: no-else-after-exit-tsx
 valid:
@@ -263,6 +430,58 @@ valid:
             y();
         }
     }
+  - |
+    function Status({ status }: Props) {
+        if (status === 'loading') {
+            return <Spinner />;
+        } else if (status === 'error') {
+            report(status);
+        } else {
+            track(status);
+        }
+        return <Done />;
+    }
+  - |
+    function f() {
+        if (a) {
+            x();
+        } else if (b) {
+            return;
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            x();
+        } else {
+            return;
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            if (b) {
+                return;
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    let body;
+    if (rows.length > 0) {
+        body = rows.map((row) => {
+            return <Row key={row.id} row={row} />;
+        });
+    } else {
+        body = <Empty />;
+    }
+  - |
+    function Page({ user }: Props) {
+        return user ? <Dashboard user={user} /> : <Login />;
+    }
 invalid:
   - |
     function f() {
@@ -292,6 +511,23 @@ invalid:
             }
         }
     }
+  - |
+    function Page({ user }: Props) {
+        if (!user) {
+            return <Login />;
+        } else {
+            return <Dashboard user={user} />;
+        }
+    }
+  - |
+    function useUser() {
+        const user = useContext(UserContext);
+        if (!user) {
+            throw new Error('useUser must be used within a UserProvider');
+        } else {
+            return user;
+        }
+    }
 ---
 id: function-reference-tsx
 valid:
@@ -304,6 +540,17 @@ valid:
   - 'a.map((x, y) => f(y));'
   - 'a.map(x => f(x).g());'
   - 'a.sort((a, b) => f(b).localeCompare(f(a)));'
+  - '<button onClick={() => handleClick()}>Save</button>;'
+  - '<input onChange={(e) => setValue(e.target.value)} />;'
+  - '<button onClick={(e) => { handleClick(e); }}>Save</button>;'
+  - 'items.map((item) => <Row key={item.id} item={item} />);'
+  - 'items.map((item) => this.renderRow(item));'
+  - 'items.map((item, index) => renderRow(item, index));'
+  - 'handlers.forEach((handler) => handler?.(event));'
+  - 'a.map(x => f?.(x));'
+  - 'a.map((x = 0) => f(x));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
+  - '<button onClick={(e) => handleClick(e)}>Save</button>;'
+  - 'fetchUser(id).then((user) => setUser(user));'
