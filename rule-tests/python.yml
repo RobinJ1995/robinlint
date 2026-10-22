@@ -46,6 +46,80 @@ valid:
   - |
     x = [i for i in xs if i]
     y = 1 if a else 2
+  - |
+    def f():
+        if a:
+            x()
+            if b:
+                return
+        if c:
+            y()
+  - |
+    for x in xs:
+        if a:
+            for y in ys:
+                if y:
+                    break
+        if b:
+            z()
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            return 2
+        else:
+            log()
+        if c:
+            y()
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            return 2
+        elif c:
+            log()
+        if d:
+            y()
+  - |
+    def f():
+        if a:
+            return 1
+        # comment about b
+        elif b:
+            x()
+        if c:
+            y()
+  - |
+    def f():
+        try:
+            if a:
+                return 1
+        except E:
+            if b:
+                x()
+  - |
+    for x in xs:
+        if a:
+            continue
+    if b:
+        y()
+  - |
+    def f(cmd):
+        match cmd:
+            case "stop":
+                return
+            case _:
+                pass
+        if b:
+            y()
+  - |
+    def gen():
+        if a:
+            yield 1
+        if b:
+            yield 2
 invalid:
   - |
     def f():
@@ -104,6 +178,30 @@ invalid:
             raise e
         if c:
             x()
+  - |
+    def f():
+        if a:
+            return 1
+        # b is rare
+        elif b:
+            return 2
+        if c:
+            x()
+  - |
+    def f(cmd):
+        match cmd:
+            case "go":
+                if a:
+                    return
+                if b:
+                    y()
+  - |
+    while True:
+        line = read()
+        if not line:
+            break
+        if line.startswith("#"):
+            skip()
 ---
 id: no-else-after-exit-python
 valid:
@@ -134,6 +232,71 @@ valid:
         pass
     else:
         y()
+  - |
+    for x in xs:
+        if x:
+            break
+    else:
+        y()
+  - |
+    def f():
+        while cond():
+            if x:
+                return
+        else:
+            y()
+  - |
+    def f():
+        try:
+            return g()
+        except E:
+            pass
+        else:
+            x()
+  - |
+    def f():
+        if a:
+            if b:
+                return 1
+        else:
+            x()
+  - |
+    def f():
+        if a:
+            try:
+                return g()
+            except E:
+                log()
+        else:
+            y()
+  - |
+    def f():
+        if a:
+            return 1
+        # fall back to b
+        elif b:
+            x()
+        else:
+            y()
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            return 2
+        elif c:
+            log()
+        else:
+            y()
+  - |
+    def gen():
+        if a:
+            yield 1
+        else:
+            yield 2
+  - |
+    def f(xs):
+        return [x if x else 0 for x in xs] if xs else None
 invalid:
   - |
     def f():
@@ -155,6 +318,28 @@ invalid:
             continue
         else:
             y()
+  - |
+    def f():
+        if a:
+            return 1
+        # why
+        else:
+            x()
+  - |
+    while True:
+        if done():
+            break
+        else:
+            step()
+  - |
+    class A:
+        def f(self, x):
+            if x < 0:
+                raise ValueError(x)
+            elif x == 0:
+                return None
+            else:
+                return 1 / x
 ---
 id: function-reference-python
 valid:
@@ -165,5 +350,21 @@ valid:
   - 'map(lambda x, y: f(y), a)'
   - 'map(lambda x: f(x).g(), a)'
   - 'sorted(a, key=lambda x: f(x).lower())'
+  - |
+    for item in items:
+        tasks.append(lambda item=item: process(item))
+  - 'list(map(lambda args: f(*args), pairs))'
+  - 'list(map(lambda kwargs: f(**kwargs), rows))'
+  - 'points = map(lambda v: Point(x=v), xs)'
+  - 'missing = filter(lambda p: not exists(p), paths)'
+  - 'sorted(rows, key=lambda r: parse(r)[0])'
+  - 'nums = map(lambda line: int(line.strip()), lines)'
+  - 'labels = map(lambda x: str(x) if x else "", xs)'
+  - |
+    class Node:
+        __hash__ = lambda self: id(self)
 invalid:
   - 'map(lambda x: f(x), a)'
+  - 'sorted(names, key=lambda s: len(s))'
+  - 'parts = list(map(lambda s: int(s), line.split(",")))'
+  - 're.sub(pattern, lambda m: replace(m), text)'

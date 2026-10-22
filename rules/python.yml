@@ -26,12 +26,13 @@ utils:
       matches: ends-with-exit
     not:
       has:
-        field: alternative
-        not:
-          kind: elif_clause
-          has:
-            field: consequence
-            matches: ends-with-exit
+        any:
+          - kind: else_clause
+          - kind: elif_clause
+            not:
+              has:
+                field: consequence
+                matches: ends-with-exit
 rule:
   kind: if_statement
   follows:
@@ -85,6 +86,16 @@ severity: error
 message: pass the function itself, not a lambda that only calls it.
 rule:
   pattern: 'lambda $X: $F($X)'
+  not:
+    # In a class body a lambda binds self as a method, but a builtin like id does not.
+    inside:
+      kind: assignment
+      inside:
+        kind: expression_statement
+        inside:
+          kind: block
+          inside:
+            kind: class_definition
 constraints:
   F:
     kind: identifier
