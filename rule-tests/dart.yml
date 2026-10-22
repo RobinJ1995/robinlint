@@ -713,6 +713,7 @@ valid:
   - 'Widget build(BuildContext c) { return TextField(onChanged: (v) => update(v).ignore()); }'
 invalid:
   - 'void m() { a.map((x) => f(x)); }'
+  - 'Widget build(BuildContext c) { return TextField(onChanged: (v) => setName(v)); }'
   - |
     Widget build(BuildContext c) {
         return ListView(
