@@ -350,6 +350,7 @@ valid:
   - 'a.map { x -> f(x).g() }'
   - 'a.map { f(it).g() }'
   - 'a.sortedWith { a, b -> f(b).compareTo(f(a)) }'
+  - 'json.map { decode<User>(it) }'
 invalid:
   - 'a.map { x -> f(x) }'
   - 'a.map { f(it) }'
