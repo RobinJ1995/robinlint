@@ -45,12 +45,12 @@ const listFiles = (root, exclude) => {
 
     try {
         const gitRepo = new GitRepo(root);
-        const splitNul = (output) => output.split('\0').filter(Boolean);
+        const splitNul = output => output.split('\0').filter(Boolean);
         const excluded = new Set(splitNul(gitRepo.lsIgnoredFiles(excludeFile)));
 
         return splitNul(gitRepo.lsFiles())
-            .filter((file) => !excluded.has(file))
-            .filter((file) => {
+            .filter(file => !excluded.has(file))
+            .filter(file => {
                 const stats = Fs.lstatSync(Path.join(root, file), { throwIfNoEntry: false });
                 return stats !== undefined && stats.isFile();
             });
@@ -119,7 +119,7 @@ const linesInsideCommentsAndStrings = (files, root) => {
     }
 
     // Every line after the first; ast-grep counts lines from 0, editorconfig-checker from 1.
-    return JSON.parse(astGrepProcess.stdout).map((match) => ({
+    return JSON.parse(astGrepProcess.stdout).map(match => ({
         file: match.file,
         firstLine: match.range.start.line + 2,
         lastLine: match.range.end.line + 1
@@ -182,7 +182,7 @@ const runEditorconfigChecker = (root, files) => {
     }
 
     const reported = editorconfigProcess.stdout.split('\n')
-        .map((line) => line.match(/^(.+):(\d+):\d+: error: (.*)$/))
+        .map(line => line.match(/^(.+):(\d+):\d+: error: (.*)$/))
         .filter(x => !!x);
     if (editorconfigProcess.status === 1 && reported.length === 0) {
         throw new Error(`Could not parse ${editorconfigCheckerBinary} output:\n${editorconfigProcess.stdout}`);
@@ -190,7 +190,7 @@ const runEditorconfigChecker = (root, files) => {
 
     return reported
         .filter(([, file, line, message]) => {
-            const exempt = exemptRanges.some((range) => {
+            const exempt = exemptRanges.some(range => {
                 return range.file === file && Number(line) >= range.firstLine && Number(line) <= range.lastLine;
             });
 

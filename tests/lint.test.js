@@ -9,7 +9,7 @@ const Yaml = require('yaml');
 const LINT_SCRIPT_PATH = Path.join(__dirname, '..', 'lint.js');
 const SAMPLES_DIR = Path.join(__dirname, 'samples');
 
-const gibRepo = (files) => {
+const gibRepo = files => {
     const repo = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'robinlint-test-'));
     
     Object.entries(files).forEach(([name, content]) => {
@@ -52,9 +52,9 @@ const lintRepo = (repo, exclude = '', rules = '') => {
     };
 };
 
-const findings = (output) => {
+const findings = output => {
     return [...output.matchAll(/^(.+?):(\d+):\d+: error\[([\w-]+)\]/gm)]
-        .map((m) => `${m[1]}:${m[2]} ${m[3]}`)
+        .map(m => `${m[1]}:${m[2]} ${m[3]}`)
         .sort();
 };
 
@@ -63,7 +63,7 @@ const expected = (name, content, lang) => {
         .flatMap((line, i) => {
             const m = line.match(/expect: ([\w, -]+)/);
             return m
-                ? m[1].split(',').map((rule) => `${name}:${i + 1} ${rule.trim()}-${lang}`)
+                ? m[1].split(',').map(rule => `${name}:${i + 1} ${rule.trim()}-${lang}`)
                 : [];
         }
     ).sort();
@@ -71,8 +71,8 @@ const expected = (name, content, lang) => {
 
 const sample = (lang, name) => Fs.readFileSync(Path.join(SAMPLES_DIR, lang, name), 'utf8');
 
-Fs.readdirSync(SAMPLES_DIR).forEach((lang) => {
-    Fs.readdirSync(Path.join(SAMPLES_DIR, lang)).forEach((name) => {
+Fs.readdirSync(SAMPLES_DIR).forEach(lang => {
+    Fs.readdirSync(Path.join(SAMPLES_DIR, lang)).forEach(name => {
         const content = sample(lang, name);
         
         if (/^bad\./i.test(name)) {
@@ -193,7 +193,7 @@ test('paths with spaces work', () => {
         'my dir/bad file.js': sample('javascript', 'bad.js')
     }));
     Assert.equal(result.status, 1);
-    Assert.ok(findings(result.output).every((f) => f.startsWith('my dir/bad file.js:')), result.output);
+    Assert.ok(findings(result.output).every(f => f.startsWith('my dir/bad file.js:')), result.output);
 });
 
 test('indentation inside comments and strings is not checked', () => {
@@ -336,7 +336,7 @@ test('feature files still get line ending and final newline checks', () => {
 test('rules can be turned off in the config', () => {
     const content = sample('javascript', 'bad.js');
     const result = lintRepo(gibRepo({ 'bad.js': content }), '', 'braces: false\n');
-    const want = expected('bad.js', content, 'javascript').filter((finding) => !finding.endsWith(' braces-javascript'));
+    const want = expected('bad.js', content, 'javascript').filter(finding => !finding.endsWith(' braces-javascript'));
     Assert.deepEqual(findings(result.output), want, result.output);
 
     const editorconfigOff = lintRepo(gibRepo({ 'tabs.txt': 'a\n\tb\n' }), '', 'editorconfig: false\n');
@@ -357,8 +357,8 @@ test('unknown rules and modes are refused', () => {
 test('every ast-grep rule can be configured', () => {
     const defaults = Yaml.parse(Fs.readFileSync(Path.join(__dirname, '..', 'config.yml'), 'utf8')).rules;
     const rulesDir = Path.join(__dirname, '..', 'rules');
-    Fs.readdirSync(rulesDir).forEach((file) => {
-        Yaml.parseAllDocuments(Fs.readFileSync(Path.join(rulesDir, file), 'utf8')).forEach((document) => {
+    Fs.readdirSync(rulesDir).forEach(file => {
+        Yaml.parseAllDocuments(Fs.readFileSync(Path.join(rulesDir, file), 'utf8')).forEach(document => {
             const rule = document.get('id').replace(/-[a-z]+$/, '');
             Assert.ok(rule in defaults, `${rule} (${file}) is missing from config.yml`);
         });

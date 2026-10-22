@@ -42,5 +42,6 @@ function load(gate, ok, items) {
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    items.forEach((item) => log(item.name));  // expect: no-single-parameter-brackets
     return items;
 }

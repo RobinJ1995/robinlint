@@ -125,3 +125,20 @@ rule:
   inside:
     kind: if_statement
     matches: exiting-branches
+---
+id: no-single-parameter-brackets-javascript
+language: javascript
+severity: error
+message: a single parameter needs no brackets.
+rule:
+  kind: formal_parameters
+  inside:
+    kind: arrow_function
+    field: parameters
+  has:
+    kind: identifier
+    all:
+      - nthChild: 1
+      - nthChild:
+          position: 1
+          reverse: true

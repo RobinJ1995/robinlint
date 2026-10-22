@@ -287,3 +287,16 @@ invalid:
             }
         }
     }
+---
+id: no-single-parameter-brackets-javascript
+valid:
+  - 'const f = y => y;'
+  - 'const f = (x, y) => x;'
+  - 'const f = () => 1;'
+  - 'const f = ({ y }) => y;'
+  - 'const f = (y = 1) => y;'
+  - 'const f = (...y) => y;'
+  - 'function f(y) { return y; }'
+invalid:
+  - 'const f = (y) => y;'
+  - 'const f = async (y) => y;'
