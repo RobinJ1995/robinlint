@@ -19,6 +19,58 @@ valid:
     int f() {
         return a ? 1 : 2;
     }
+  - |
+    var m = {
+        if (a) 'k': 1,
+        for (final x in xs) if (x.ok) x.id: x,
+    };
+  - |
+    Widget build(BuildContext c) {
+        return Column(
+            children: [
+                if (loading) const CircularProgressIndicator() else Text(title),
+                for (final i in items)
+                    if (i.visible) Tile(i),
+            ],
+        );
+    }
+  - |
+    void f(Object json) {
+        if (json case {'name': String name}) {
+            print(name);
+        } else if (json case [int x, _] when x > 0) {
+            print(x);
+        }
+    }
+  - |
+    void f() {
+        if (a) /* why */ {
+            b();
+        } // comment
+        else /* why */ {
+            c();
+        }
+    }
+  - |
+    Future<void> f() async {
+        if (await isReady()) {
+            await go();
+        } else if (!mounted) {
+            return;
+        }
+    }
+  - |
+    void f() {
+        items.forEach((i) {
+            if (i.done) {
+                return;
+            }
+        });
+        final s = switch (x) {
+            1 when a => 'one',
+            _ => 'other',
+        };
+    }
 invalid:
   - |
     void f() {
@@ -40,6 +92,29 @@ invalid:
         if (a) {
             b();
         } else if (c) d();
+    }
+  - |
+    void f() {
+        if (json case {'id': int id}) print(id);
+    }
+  - |
+    Widget build(BuildContext c) {
+        return ElevatedButton(
+            onPressed: () async {
+                if (!context.mounted) return;
+                Navigator.pop(c);
+            },
+            child: Text('x'),
+        );
+    }
+  - |
+    void f() {
+        if (a) {
+            b();
+        } else
+            for (final x in xs) {
+                g(x);
+            }
     }
 ---
 id: elseif-dart
@@ -109,6 +184,76 @@ valid:
             y = 1;
         }
         return 0;
+    }
+  - |
+    List<int> f() {
+        return [
+            if (a) 1,
+            if (b) 2,
+        ];
+    }
+  - |
+    void f() {
+        for (final x in xs) {
+            if (x.done) {
+                continue;
+            }
+        }
+        if (b) {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            items.forEach((i) {
+                return;
+            });
+        }
+        if (b) {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            x = y ?? (throw StateError('y'));
+        }
+        if (b) {
+            z();
+        }
+    }
+  - |
+    void f() {
+        switch (x) {
+            case 1:
+                if (a) {
+                    return;
+                }
+            case 2:
+                if (b) {
+                    y();
+                }
+        }
+    }
+  - |
+    Future<void> f() async {
+        if (a) {
+            return;
+        }
+        final v = await load();
+        if (v == null) {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            // return;
+        }
+        if (b) {
+            y();
+        }
     }
 invalid:
   - |
@@ -198,6 +343,44 @@ invalid:
             x = 1;
         }
     }
+  - |
+    Widget build(BuildContext c) {
+        return ElevatedButton(
+            onPressed: () async {
+                final ok = await save();
+                if (!context.mounted) {
+                    return;
+                }
+                if (ok) {
+                    Navigator.pop(c);
+                }
+            },
+            child: Text('x'),
+        );
+    }
+  - |
+    void f(Object json) {
+        if (json case {'error': String message}) {
+            throw ApiException(message);
+        }
+        if (json case {'data': Map data}) {
+            handle(data);
+        }
+    }
+  - |
+    void f() {
+        outer:
+        for (final row in rows) {
+            for (final x in row) {
+                if (x == null) {
+                    continue outer;
+                }
+                if (x.done) {
+                    y();
+                }
+            }
+        }
+    }
 ---
 id: braces-placement-dart
 valid:
@@ -224,6 +407,60 @@ valid:
             c();
         }
         if (a) {
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            items.forEach((x) { print(x); });
+        } else {
+            try { g(); } catch (_) {}
+        }
+        for (final x in xs) { g(x); }
+    }
+  - |
+    void f() {
+        if (items.any((i) { return i.ok; })) {
+            g();
+        }
+    }
+  - |
+    void f() {
+        if (name == '${first} ${last}') {
+            g();
+        }
+    }
+  - |
+    void f() {
+        if (isValid(input) &&
+            input.length > (max)) {
+            g();
+        }
+    }
+  - |
+    void f() {
+        if (a) { /* explain */
+            g();
+        } else if (c) { // comment
+            d();
+        } else {
+            // nothing
+        }
+    }
+  - |
+    void f(Object json) {
+        if (json case {'name': String name}) {
+            final m = {
+                'k': name,
+            };
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            final s = '''
+    else
+    {''';
         }
     }
 invalid:
@@ -273,6 +510,24 @@ invalid:
             }
         }
     }
+  - |
+    void f() {
+        if (json case {'id': int id}) { print(id); }
+    }
+  - |
+    Future<void> f() async {
+        if (await check()) {
+            await go(); }
+    }
+  - |
+    void f() {
+        if (a) {
+            b();
+        } else if (c)
+        {
+            d();
+        }
+    }
 ---
 id: no-else-after-exit-dart
 valid:
@@ -300,6 +555,73 @@ valid:
             return a;
         } else if (b) {
             x();
+        } else {
+            y();
+        }
+    }
+  - |
+    int f() {
+        if (x) {
+            foo();
+        } else if (a) {
+            return 1;
+        } else {
+            bar();
+        }
+        return 0;
+    }
+  - |
+    void f() {
+        if (a) {
+            items.forEach((i) {
+                return;
+            });
+        } else {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            if (b) {
+                return;
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            x = y ?? (throw StateError('y'));
+        } else {
+            z();
+        }
+    }
+  - |
+    List<int> f() {
+        return [
+            if (a) 1 else 2,
+            for (final x in xs)
+                if (x.ok) x.id else -1,
+        ];
+    }
+  - |
+    void f() {
+        if (a) {
+            // return;
+        } else {
+            y();
+        }
+    }
+  - |
+    void f() {
+        if (a) {
+            return;
+        } else if (b) {
+            x();
+        } else if (c) {
+            return;
         } else {
             y();
         }
@@ -333,6 +655,39 @@ invalid:
             }
         }
     }
+  - |
+    Widget build(BuildContext c) {
+        return ElevatedButton(
+            onPressed: () async {
+                if (!context.mounted) {
+                    return;
+                } else {
+                    Navigator.pop(c);
+                }
+            },
+            child: Text('x'),
+        );
+    }
+  - |
+    void f(Object json) {
+        if (json case {'error': String message}) {
+            throw ApiException(message);
+        } else {
+            handle(json);
+        }
+    }
+  - |
+    void f() {
+        try {
+            g();
+        } catch (e) {
+            if (e is TimeoutException) {
+                rethrow;
+            } else {
+                log(e);
+            }
+        }
+    }
 ---
 id: function-reference-dart
 valid:
@@ -346,5 +701,29 @@ valid:
   - 'void m() { a.map((x) => f(x) + 1); }'
   - 'void m() { a.map((x) => f(x)[0]); }'
   - 'void m() { a.sort((a, b) => f(b).compareTo(f(a))); }'
+  - 'void m() { a.map((x) async => f(x)); }'
+  - 'void m() { a.then((x) async => await f(x)); }'
+  - 'void m() { a.where((x) => !f(x)); }'
+  - 'void m() { a.map((x) => f(x)!); }'
+  - 'void m() { a.map((x) => f(x) ?? 0); }'
+  - 'void m() { a.map((x) => f(x: x)); }'
+  - 'void m() { a.map(({x}) => f(x)); }'
+  - 'void m() { a.map((x) => c ? f(x) : x); }'
+  - "void m() { a.map((x) => '${f(x)}'); }"
+  - 'Widget build(BuildContext c) { return Switch(value: on, onChanged: (v) => widget.onChanged(v)); }'
+  - 'Widget build(BuildContext c) { return TextField(onChanged: (v) => update(v).ignore()); }'
 invalid:
   - 'void m() { a.map((x) => f(x)); }'
+  - 'Widget build(BuildContext c) { return TextField(onChanged: (v) => setName(v)); }'
+  - |
+    Widget build(BuildContext c) {
+        return ListView(
+            children: items.map((item) => buildTile(item)).toList(),
+        );
+    }
+  - |
+    void m() {
+        controller
+            ..addListener(onChange)
+            ..addStatusListener((status) => onStatus(status));
+    }
