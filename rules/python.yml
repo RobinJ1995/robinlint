@@ -85,6 +85,16 @@ severity: error
 message: pass the function itself, not a lambda that only calls it.
 rule:
   pattern: 'lambda $X: $F($X)'
+  not:
+    # In a class body a lambda binds self as a method, but a builtin like id does not.
+    inside:
+      kind: assignment
+      inside:
+        kind: expression_statement
+        inside:
+          kind: block
+          inside:
+            kind: class_definition
 constraints:
   F:
     kind: identifier

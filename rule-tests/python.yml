@@ -340,6 +340,9 @@ valid:
   - 'sorted(rows, key=lambda r: parse(r)[0])'
   - 'nums = map(lambda line: int(line.strip()), lines)'
   - 'labels = map(lambda x: str(x) if x else "", xs)'
+  - |
+    class Node:
+        __hash__ = lambda self: id(self)
 invalid:
   - 'map(lambda x: f(x), a)'
   - 'sorted(names, key=lambda s: len(s))'
