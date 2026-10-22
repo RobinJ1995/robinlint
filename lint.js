@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { adsInPRBody, adsInCommits, toolCommitAuthors } = require('./ads');
+const { adsInPRBody, adsInCommits, toolCommitAuthors, adsInBranchNames } = require('./ads');
 const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
@@ -94,6 +94,7 @@ const runAstGrep = (root, files) => {
                 file: match.file,
                 line,
                 commit: null,
+                branch: null,
                 output: `${match.file}:${line}:${column}: ${match.severity}[${match.ruleId}]: ${match.message}`,
                 isError: match.severity === 'error'
             };
@@ -201,6 +202,7 @@ const runEditorconfigChecker = (root, files) => {
             // editorconfig-checker reports file-wide errors on line 0.
             line: line === '0' ? null : Number(line),
             commit: null,
+            branch: null,
             output,
             isError: true
         }));
@@ -230,9 +232,16 @@ const main = () => {
     const diff = gitRepo.diff(base);
     const commits = gitRepo.commits();
     const newCommits = gitRepo.commitsSince(base);
+    // Outside pull requests and pushes, the new branch is the one checked out.
+    const branch = change !== null ? change.branch() : gitRepo.currentBranch();
+    // A pull request's branch can be in a fork, unknown to this clone.
+    const branches = [branch, ...gitRepo.branches().filter(otherBranch => otherBranch !== branch)]
+        .filter(name => name !== null);
     const isNew = finding => {
         if (finding.commit !== null) {
             return newCommits.includes(finding.commit);
+        } else if (finding.branch !== null) {
+            return finding.branch === branch;
         } else if (finding.file === null) {
             // Outside a file can mean e.g. PR body
             return true;
@@ -248,7 +257,8 @@ const main = () => {
         ...runEditorconfigChecker(root, files),
         ...adsInPRBody(pullRequest),
         ...adsInCommits(commits),
-        ...toolCommitAuthors(commits)
+        ...toolCommitAuthors(commits),
+        ...adsInBranchNames(branches)
     ];
     const enabledRules = Object.keys(rules).filter(rule => rules[rule]);
     const results = enabledRules.map(rule => {
