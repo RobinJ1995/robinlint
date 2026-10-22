@@ -179,4 +179,6 @@ rule:
                 reverse: true
   # In (x) => f(x).g() or (x) => f(x) + 1, ((x) => f)(x) is only part of the body.
   inside:
-    kind: arguments
+    any:
+      - kind: arguments
+      - kind: named_argument
