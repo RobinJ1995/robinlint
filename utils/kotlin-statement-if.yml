@@ -6,27 +6,60 @@ utils:
     any:
       - kind: line_comment
       - kind: multiline_comment
+  last-statement:
+    nthChild:
+      position: 1
+      reverse: true
+      ofRule:
+        not:
+          matches: comment
+  # A try or when whose value is used.
+  value-expression:
+    any:
+      - not:
+          inside:
+            kind: statements
+      - matches: last-statement
+        inside:
+          kind: statements
+          matches: value-block
+  # A block whose last statement is its value: a lambda, or a branch of a
+  # try, when or if whose value is used.
+  value-block:
+    kind: statements
+    inside:
+      any:
+        - kind: lambda_literal
+        - kind: try_expression
+          matches: value-expression
+        - kind: catch_block
+          inside:
+            kind: try_expression
+            matches: value-expression
+        - kind: control_structure_body
+          inside:
+            any:
+              - kind: when_entry
+                inside:
+                  kind: when_expression
+                  matches: value-expression
+              - kind: if_expression
+                not:
+                  matches: kotlin-statement-if
 rule:
   kind: if_expression
   any:
     - inside:
         kind: statements
-      # The last statement of a lambda is its value.
       not:
         all:
           - has:
               field: alternative
               kind: control_structure_body
-          - nthChild:
-              position: 1
-              reverse: true
-              ofRule:
-                not:
-                  matches: comment
+          - matches: last-statement
           - inside:
               kind: statements
-              inside:
-                kind: lambda_literal
+              matches: value-block
     - inside:
         kind: control_structure_body
         inside:
