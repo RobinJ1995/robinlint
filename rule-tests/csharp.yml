@@ -18,6 +18,61 @@ valid:
             return a ? 1 : 2;
         }
     }
+  - |
+    class A {
+        void F() {
+            if (a) /* why */ {
+                B();
+            } else /* otherwise */ if (c) {
+                D();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else {
+                if (c) {
+                    D();
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+    #if DEBUG
+            Log();
+    #endif
+        }
+    }
+  - |
+    class A {
+        string F(int x) => x switch {
+            1 => "one",
+            _ => "many",
+        };
+    }
+  - |
+    class A {
+        void F() {
+            if (x is { Length: > 0 } s && items.Any(i => { return i.Ok; })) {
+                B($"{s}");
+            }
+        }
+    }
+  - |
+    class A {
+        async Task F() {
+            if (await IsReadyAsync()) {
+                await RunAsync();
+            } else if (retries-- > 0) {
+                await Task.Delay(100);
+            }
+        }
+    }
 invalid:
   - |
     class A {
@@ -46,6 +101,32 @@ invalid:
             if (a) {
                 B();
             } else if (c) D();
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) if (b) {
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else if (c) {
+                D();
+            } else E();
+        }
+    }
+  - |
+    class A {
+        IEnumerable<int> F() {
+            foreach (var x in xs) {
+                if (x < 0) yield break;
+            }
         }
     }
 ---
@@ -168,6 +249,83 @@ valid:
             return 0;
         }
     }
+  - |
+    class A {
+        IEnumerable<int> F() {
+            if (a) {
+                yield return 1;
+            }
+            if (b) {
+                yield return 2;
+            }
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (o is not (int w, int h)) {
+                return 1;
+            }
+
+            return w * h;
+        }
+    }
+  - |
+    class A {
+        int F() {
+            if (a) {
+                return 0;
+            }
+            if (args is not [var first, ..]) {
+                return 1;
+            }
+
+            return Run(first);
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                return;
+            }
+    #if DEBUG
+            if (b) {
+                Log();
+            }
+    #endif
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                items.ForEach(x => {
+                    return;
+                });
+            }
+            if (b) {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                Local();
+                void Local() {
+                    return;
+                }
+            }
+            if (b) {
+                Y();
+            }
+        }
+    }
 invalid:
   - |
     class A {
@@ -281,6 +439,45 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        void F() {
+            if (!cache.TryGetValue(key, out var value)) {
+                return;
+            }
+            if (value.IsExpired) {
+                Refresh(value);
+            }
+        }
+    }
+  - |
+    class A {
+        async Task<string> F() {
+            if (a) {
+                await LogAsync();
+                return x switch { 1 => "one", _ => "many" };
+            }
+            if (b) {
+                await RunAsync();
+            }
+            return "";
+        }
+    }
+  - |
+    class A {
+        void F() {
+            switch (k) {
+                case 1:
+                    if (a) {
+                        break;
+                    }
+                    if (b) {
+                        X();
+                    }
+                    break;
+            }
+        }
+    }
 ---
 id: braces-placement-csharp
 valid:
@@ -310,6 +507,78 @@ valid:
                 C();
             }
             if (a) {
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (x is { Length: > 0 }) {
+                B($"{x}");
+            }
+            if (s == $"{a}{b}") {
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (
+                a &&
+                b
+            ) {
+                C();
+            }
+            if (Check(a)
+                && b) {
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                Run(() => {
+                    X();
+                });
+            } else {
+                var p = new P { X = 1 };
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) { // nothing to do
+            }
+            else if (b) { /* rare */
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else {
+                if (b) {
+                    C();
+                } else {
+                    D();
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            var y = a switch { 1 => 2, _ => 3 };
+            foreach (var x in xs)
+            {
+                B(x);
             }
         }
     }
@@ -374,6 +643,38 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        void F() {
+            if (a) // comment
+            {
+                B();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a &&
+                b)
+            {
+                C();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                B();
+            } else if (b) {
+                C();
+            } else
+            {
+                D();
+            }
+        }
+    }
 ---
 id: no-else-after-exit-csharp
 valid:
@@ -411,6 +712,70 @@ valid:
             }
         }
     }
+  - |
+    class A {
+        IEnumerable<int> F() {
+            if (a) {
+                yield return 1;
+            } else {
+                yield return 2;
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                X();
+            } else if (b) {
+                return;
+            } else {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                items.ForEach(x => {
+                    return;
+                });
+            } else {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                switch (k) {
+                    case 1:
+                        break;
+                }
+            } else {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            if (a) {
+                Local();
+                void Local() {
+                    return;
+                }
+            } else {
+                Y();
+            }
+        }
+    }
+  - |
+    class A {
+        int F() => a ? 1 : throw new InvalidOperationException();
+    }
 invalid:
   - |
     class A {
@@ -446,6 +811,41 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        int F(object o) {
+            if (o is not Foo f) {
+                return 0;
+            } else {
+                return f.X;
+            }
+        }
+    }
+  - |
+    class A {
+        async Task F() {
+            if (response == null) {
+                throw new HttpRequestException();
+            }
+            else {
+                await ProcessAsync(response);
+            }
+        }
+    }
+  - |
+    class A {
+        void F() {
+            switch (k) {
+                case 1:
+                    if (a) {
+                        break;
+                    } else {
+                        X();
+                    }
+                    break;
+            }
+        }
+    }
 ---
 id: function-reference-csharp
 valid:
@@ -457,7 +857,20 @@ valid:
   - 'a.Select((x, y) => F(y));'
   - 'a.Select(x => F(x).G());'
   - 'a.Sort((a, b) => F(b).CompareTo(F(a)));'
+  - 'a.Select(x => F(x!));'
+  - 'a.Select(x => F(y));'
+  - 'a.Select(x => F(G(x)));'
+  - 'a.Select(x => F(x.Id));'
+  - 'a.Select(x => F(y, x));'
+  - 'a.Select(x => F<int>(x));'
+  - 'a.Select(x => this.F(x));'
+  - 'a.Select(x => new Foo(x));'
+  - 'a.Select(x => { return F(x); });'
+  - 'button.Click += (s, e) => OnClick(s, e);'
 invalid:
   - 'a.Select(x => F(x));'
   - 'a.Select((x) => F(x));'
   - 'a.Select((int x) => F(x));'
+  - 'a.Select(static x => F(x));'
+  - 'a.Where(predicate: x => IsValid(x));'
+  - 'Func<int, int> f = (int x) => F(x);'
