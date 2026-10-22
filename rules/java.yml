@@ -81,7 +81,7 @@ severity: error
 message: if statement braces go on the correct line.
 utils:
   allman-else:
-    regex: '\belse[ \t]*(//.*)?\n\s*\{'
+    regex: '\belse[ \t]*(//.*)?\r?\n\s*\{'
 rule:
   kind: block
   any:
@@ -96,7 +96,7 @@ rule:
     - inside:
         kind: if_statement
         field: consequence
-        regex: '^if\b[^{]*\)[ \t]*(//.*)?\n\s*\{'
+        regex: '^if\b[^{]*\)[ \t]*(//.*)?\r?\n\s*\{'
     # Only the innermost offending else is reported until it's fixed.
     - not:
         matches: allman-else

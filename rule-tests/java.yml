@@ -350,6 +350,8 @@ invalid:
             }
         }
     }
+  - "class A {\r\n    void f() {\r\n        if (a)\r\n        {\r\n            b();\r\n        }\r\n    }\r\n}\r\n"
+  - "class A {\r\n    void f() {\r\n        if (a) {\r\n            b();\r\n        }\r\n        else\r\n        {\r\n            c();\r\n        }\r\n    }\r\n}\r\n"
 ---
 id: no-else-after-exit-java
 valid:
