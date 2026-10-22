@@ -19,6 +19,28 @@ valid:
         e();
     }
   - 'x = a ? b : c;'
+  - |
+    if (a) /* why */ {
+        b();
+    }
+  - |
+    if (a) {
+        b();
+    } else /* why */ {
+        c();
+    }
+  - |
+    if (a) {
+        b();
+    } else /* why */ if (c) {
+        d();
+    }
+  - |
+    if (a) {
+    } else {
+    }
+  - 'for (const x of xs) x();'
+  - 'a && b();'
 invalid:
   - if (a) b();
   - if (a) return;
@@ -42,6 +64,22 @@ invalid:
   - |
     if (a) if (b) {
         c();
+    }
+  - |
+    if (a) b();
+    else {
+        c();
+    }
+  - |
+    if (a) {
+        b();
+    } else if (c) {
+        d();
+    } else e();
+  - |
+    for (const x of xs) {
+        if (!x) continue;
+        y(x);
     }
 ---
 id: elseif-javascript
@@ -94,6 +132,70 @@ valid:
     x = 1;
     if (b) {
         y = 1;
+    }
+  - |
+    if (a) {
+        xs.forEach((x) => {
+            return;
+        });
+    }
+    if (b) {
+        y();
+    }
+  - |
+    if (a) {
+        switch (x) {
+            case 1:
+                break;
+        }
+    }
+    if (b) {
+        y();
+    }
+  - |
+    if (a) {
+        return 1;
+    } else {
+        return 2;
+    }
+    if (b) {
+        y();
+    }
+  - |
+    switch (x) {
+        case 1:
+            if (a) {
+                return 1;
+            }
+        case 2:
+            if (b) {
+                y();
+            }
+    }
+  - |
+    if (a) {
+        return 1;
+    }
+    const c = () => {
+        if (b) {
+            y();
+        }
+    };
+  - |
+    if (a) {
+        // return 1;
+    }
+    if (b) {
+        y();
+    }
+  - |
+    function* g() {
+        if (a) {
+            yield 1;
+        }
+        if (b) {
+            y();
+        }
     }
 invalid:
   - |
@@ -164,6 +266,38 @@ invalid:
   - |
     if (a) return;
     if (b) return;
+  - |
+    outer: for (const x of xs) {
+        for (const y of ys) {
+            if (a) {
+                continue outer;
+            }
+            if (b) {
+                z();
+            }
+        }
+    }
+  - |
+    switch (x) {
+        case 1:
+            if (a) {
+                break;
+            }
+            if (b) {
+                y();
+            }
+            break;
+    }
+  - |
+    async function f() {
+        if (a) {
+            return await g();
+            // TODO: retry
+        }
+        if (b) {
+            y();
+        }
+    }
 ---
 id: braces-placement-javascript
 valid:
@@ -195,6 +329,37 @@ valid:
         b();
     }
   - 'function f() { return { a: 1 }; }'
+  - |
+    if (a) { /* comment */
+        b();
+    }
+  - |
+    if (a) {
+        b(); // }
+    }
+  - |
+    if (a) {
+        foo({
+            x: 1,
+        });
+    }
+  - |
+    if (`${a}` === b) {
+        s = `${c}`;
+    }
+  - |
+    if (isEqual(a, { x: 1 })) {
+        c();
+    }
+  - |
+    if (
+        a &&
+        b
+    ) {
+        c();
+    }
+  - 'for (const x of xs) { y(); }'
+  - "if (a) {\r\n    b();\r\n} else {\r\n    c();\r\n}\r\n"
 invalid:
   - if (a) { b(); }
   - if (a) {}
@@ -227,6 +392,16 @@ invalid:
     {
         d();
     }
+  - |
+    if (a) {
+        b();
+    } else if (c) { d(); }
+  - |
+    if (a) // comment
+    {
+        b();
+    }
+  - 'if (a) { /* nothing */ }'
 ---
 id: no-else-after-exit-javascript
 valid:
@@ -253,6 +428,70 @@ valid:
         if (a) {
             return a;
         } else if (b) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            xs.forEach((x) => {
+                return;
+            });
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            try {
+                return g();
+            } catch (e) {
+                log(e);
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            x();
+        } else if (b) {
+            return b;
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            return a;
+        } else /* fallback */ if (b) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            if (b) {
+                return b;
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    function f() {
+        if (a) {
+            return a;
+        } else if (b) {
+            throw e;
+        } else if (c) {
             x();
         } else {
             y();
@@ -287,6 +526,36 @@ invalid:
             }
         }
     }
+  - |
+    function f() {
+        if (a) {
+            return a;
+            // unreachable
+        } else {
+            y();
+        }
+    }
+  - |
+    switch (x) {
+        case 1:
+            if (a) {
+                break;
+            } else {
+                y();
+            }
+    }
+  - |
+    function f() {
+        if (a) {
+            x();
+        } else {
+            if (b) {
+                return b;
+            } else {
+                y();
+            }
+        }
+    }
 ---
 id: function-reference-javascript
 valid:
@@ -299,9 +568,23 @@ valid:
   - 'a.map((x, y) => f(y));'
   - 'a.map(x => f(x).g());'
   - 'a.sort((a, b) => f(b).localeCompare(f(a)));'
+  - 'a.map(x => f(...x));'
+  - 'a.map(({ x }) => f(x));'
+  - 'a.map((x = 1) => f(x));'
+  - 'a.map((...x) => f(x));'
+  - 'a.map(x => f?.(x));'
+  - 'a.map(x => new Foo(x));'
+  - 'a.map(x => import(x));'
+  - 'a.map(x => !f(x));'
+  - 'a.map(x => y => f(x));'
+  - "['1', '2'].map(x => parseInt(x));"
+  - 'await new Promise(resolve => setTimeout(resolve));'
+  - 'Promise.all(urls.map(url => fetch(url)));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
+  - 'a.map(x => Number(x));'
+  - 'promise.then((user) => render(user)).catch(e => report(e));'
 ---
 id: no-single-parameter-brackets-javascript
 valid:
@@ -312,6 +595,25 @@ valid:
   - 'const f = (y = 1) => y;'
   - 'const f = (...y) => y;'
   - 'function f(y) { return y; }'
+  - 'const f = ([a, b]) => a + b;'
+  - 'const f = ({ a } = {}) => a;'
+  - 'const f = async (a, b) => a;'
+  - 'const f = function (a) { return a; };'
+  - |
+    class A {
+        m(a) {
+            return a;
+        }
+    }
+  - |
+    // @flow
+    const f = (x: number) => x;
 invalid:
   - 'const f = (y) => y;'
   - 'const f = async (y) => y;'
+  - 'xs.map((x) => x * 2);'
+  - 'const f = (a) => (b) => a + b;'
+  - |
+    const f = (x) => {
+        return x;
+    };

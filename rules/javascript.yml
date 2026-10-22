@@ -139,6 +139,9 @@ rule:
 constraints:
   F:
     kind: identifier
+    # These misbehave when also given the caller's extra arguments, e.g. ['1', '2'].map(parseInt).
+    not:
+      regex: ^(parseInt|setTimeout|setInterval|fetch)$
 ---
 id: no-single-parameter-brackets-javascript
 language: javascript
