@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { adsInPRBody } = require('./ads');
+const { adsInPRBody, adsInCommits } = require('./ads');
 const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
@@ -93,6 +93,7 @@ const runAstGrep = (root, files) => {
                 rule: match.ruleId.match(RULE_ID_REGEX).groups.rule,
                 file: match.file,
                 line,
+                commit: null,
                 output: `${match.file}:${line}:${column}: ${match.severity}[${match.ruleId}]: ${match.message}`,
                 isError: match.severity === 'error'
             };
@@ -199,6 +200,7 @@ const runEditorconfigChecker = (root, files) => {
             file,
             // editorconfig-checker reports file-wide errors on line 0.
             line: line === '0' ? null : Number(line),
+            commit: null,
             output,
             isError: true
         }));
@@ -226,9 +228,13 @@ const main = () => {
     // Outside pull requests and pushes, what's new is what the latest commit adds.
     const base = change !== null ? change.baseCommit(gitRepo) : gitRepo.firstParent('HEAD');
     const diff = gitRepo.diff(base);
+    const commits = gitRepo.commits();
+    const newCommits = gitRepo.commitsSince(base);
     const isNew = finding => {
-        // Outside a file can mean e.g. PR body
-        if (finding.file === null) {
+        if (finding.commit !== null) {
+            return newCommits.includes(finding.commit);
+        } else if (finding.file === null) {
+            // Outside a file can mean e.g. PR body
             return true;
         } else if (finding.line === null) {
             // A file-wide finding is only new in a new file.
@@ -240,7 +246,8 @@ const main = () => {
     const findings = [
         ...runAstGrep(root, files),
         ...runEditorconfigChecker(root, files),
-        ...adsInPRBody(pullRequest)
+        ...adsInPRBody(pullRequest),
+        ...adsInCommits(commits)
     ];
     const enabledRules = Object.keys(rules).filter(rule => rules[rule]);
     const results = enabledRules.map(rule => {

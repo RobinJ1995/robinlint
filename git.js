@@ -67,6 +67,51 @@ class GitRepo {
 
     mergeBase = (a, b) => this._cmd(['merge-base', a, b]).trim();
 
+    head = () => this._cmd(['rev-parse', 'HEAD']).trim();
+
+    // HEAD's whole history, newest first; none before the first commit.
+    commits = () => {
+        if (!this.hasObject('HEAD')) {
+            return [];
+        } else if (this.isShallow()) {
+            this.unshallow(this.head());
+        }
+
+        // sha, author name, author email, committer name, committer email, then the message, each on its own line
+        return this._cmd(['log', '-z', '--format=%H%n%an%n%ae%n%cn%n%ce%n%B', 'HEAD'])
+            .split('\0')
+            .filter(commit => commit !== '')
+            .map(commit => {
+                const [sha, authorName, authorEmail, committerName, committerEmail, ...messageLines] = commit.split('\n');
+
+                return {
+                    sha,
+                    author: {
+                        name: authorName,
+                        email: authorEmail
+                    },
+                    committer: {
+                        name: committerName,
+                        email: committerEmail
+                    },
+                    message: messageLines.join('\n')
+                };
+            });
+    };
+
+    // The commits in HEAD's history that aren't in base's; all of them when base is the empty tree.
+    commitsSince = base => {
+        if (!this.hasObject('HEAD')) {
+            return [];
+        }
+
+        const excluded = base === this.emptyTree() ? [] : ['--not', base];
+
+        return this._cmd(['rev-list', 'HEAD', ...excluded])
+            .split('\n')
+            .filter(sha => sha !== '');
+    };
+
     diff = base => {
         if (!this.hasObject(base)) {
             this.fetchCommit(base);
