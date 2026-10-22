@@ -187,6 +187,13 @@ valid:
     }
   - |
     fun f() {
+        val ys = xs.map {
+            if (it == null) return@map 0
+            if (it > 0) it else -it
+        }
+    }
+  - |
+    fun f() {
         if (a) {
             items.forEach {
                 if (it.done) return

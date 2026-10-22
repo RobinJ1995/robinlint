@@ -56,6 +56,7 @@ utils:
             matches: exiting-chain
 rule:
   kind: if_expression
+  matches: kotlin-statement-if
   inside:
     kind: statements
   follows:
