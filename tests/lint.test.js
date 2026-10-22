@@ -1049,3 +1049,12 @@ test('a tool name for a pull request branch fails', async () => {
     Assert.equal(result.status, 1, result.output);
     Assert.ok(result.output.includes(`branch copilot/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
 });
+
+test("robinlint's own CI turns every rule fully on", () => {
+    const defaults = Yaml.parse(Fs.readFileSync(Path.join(__dirname, '..', 'config.yml'), 'utf8')).rules;
+    const ci = Yaml.parse(Fs.readFileSync(Path.join(__dirname, '..', '.github', 'workflows', 'ci.yml'), 'utf8'));
+    const lintStep = ci.jobs.robinlint.steps.find(step => step.uses === './');
+    const rules = Yaml.parse(lintStep.with.rules);
+
+    Assert.deepEqual(rules, Object.fromEntries(Object.keys(defaults).map(rule => [rule, true])));
+});

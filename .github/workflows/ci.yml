@@ -45,7 +45,7 @@ jobs:
         uses: ./robinlint
       - run: test "${{ steps.lint.outcome }}" = failure
 
-  action-lints-this-repo:
+  robinlint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,3 +53,16 @@ jobs:
         with:
           exclude: |
             tests/samples/
+          rules: |
+            editorconfig: true
+            braces: true
+            braces-placement: true
+            elseif: true
+            no-else-after-exit: true
+            function-reference: true
+            no-single-parameter-brackets: true
+            no-ads-in-prs: true
+            no-ads-in-pr-comments: true
+            no-ads-in-commits: true
+            no-tools-as-commit-author: true
+            no-ads-in-branch-names: true
