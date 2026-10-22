@@ -28,6 +28,7 @@ utils:
           kind: throw_expression
       - kind: break_statement
       - kind: continue_statement
+      - kind: exit_statement
   ends-with-exit:
     any:
       - matches: exit
@@ -74,6 +75,11 @@ severity: error
 message: if statement braces go on the correct line.
 rule:
   kind: compound_statement
+  # Templates leave PHP inside the block: `{ ?>` ... `<?php }`.
+  not:
+    has:
+      kind: php_end_tag
+      stopBy: end
   any:
     - regex: '^\{[ \t]*[^\s/#]|\S[ \t]*\}$'
       inside:
@@ -108,6 +114,7 @@ utils:
           kind: throw_expression
       - kind: break_statement
       - kind: continue_statement
+      - kind: exit_statement
   ends-with-exit:
     any:
       - matches: exit
@@ -171,9 +178,18 @@ rule:
     has:
       kind: simple_parameter
       matches: only-child
+      # A type or return type converts the value on the way through.
+      not:
+        has:
+          field: type
+          pattern: $_
       has:
         field: name
         pattern: $X
+  not:
+    has:
+      field: return_type
+      pattern: $_
   all:
     - has:
         field: body
@@ -182,11 +198,29 @@ rule:
           - has:
               field: function
               kind: name
+              # Language constructs that have no first-class callable.
+              not:
+                regex: '^(?i:isset|empty|eval|die)$'
           - has:
               field: arguments
               has:
                 kind: argument
                 matches: only-child
+                not:
+                  has:
+                    field: name
+                    pattern: $_
                 has:
                   kind: variable_name
                   pattern: $X
+  # Only where the callback gets exactly one argument. Other callers (array_walk,
+  # Laravel's map and filter, ...) also pass the key, which a built-in such as
+  # trim(...) takes as its second parameter, or rejects.
+  inside:
+    kind: argument
+    inside:
+      kind: arguments
+      inside:
+        any:
+          - pattern: array_map($_, $_)
+          - pattern: array_filter($_, $_)
