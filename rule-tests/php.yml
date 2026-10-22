@@ -20,6 +20,61 @@ valid:
     else:
         e();
     endif;
+  - |
+    <?php if ($user) { ?>
+        <p>Hello, <?= $user->name ?></p>
+    <?php } elseif ($guest) { ?>
+        <p>Hello, guest</p>
+    <?php } else { ?>
+        <a href="/login">Log in</a>
+    <?php } ?>
+  - |
+    <?php foreach ($items as $item): ?>
+        <?php if ($item->visible): ?>
+            <li><?= $item->name ?></li>
+        <?php else: ?>
+            <li>hidden</li>
+        <?php endif; ?>
+    <?php endforeach; ?>
+  - |
+    <?php
+    class Repo {
+        public function find($xs) {
+            return array_filter($xs, function ($x) {
+                if ($x > 1) {
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+  - |
+    <?php
+    foreach ($xs as $x) f($x);
+    while ($a) g();
+    $y = $a ? b() : c();
+    $z = match (true) {
+        $a => 1,
+        default => 2,
+    };
+  - |
+    <?php
+    if ($a) /* why */ {
+        b();
+    } else {
+        if ($c) {
+            d();
+        }
+    }
+  - |
+    <?php
+    if ($a):
+        if ($b) {
+            c();
+        }
+    else:
+        d();
+    endif;
 invalid:
   - <?php if ($a) b();
   - |
@@ -41,6 +96,26 @@ invalid:
     if ($a) {
         b();
     } else if ($c) d();
+  - |
+    <?php
+    function f($a, $b) {
+        if ($a) {
+            return 1;
+        } elseif ($b) {
+            return 2;
+        } else
+            return 3;
+    }
+  - |
+    <?php
+    if ($a) // why
+        b();
+  - |
+    <?php
+    $f = function ($x) {
+        if ($x) return 1;
+        return 2;
+    };
 ---
 id: elseif-php
 valid:
@@ -112,6 +187,83 @@ valid:
             $y = 1;
         }
     }
+  - |
+    <?php
+    if (!function_exists('f')) {
+        function f() {
+            return 1;
+        }
+    }
+    if (!function_exists('g')) {
+        function g() {
+            return 2;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            $g = function () {
+                return 1;
+            };
+        }
+        if ($b) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            try {
+                return g();
+            } catch (Exception $e) {
+                log($e);
+            }
+        }
+        if ($b) {
+            h();
+        }
+    }
+  - |
+    <?php
+    switch ($a) {
+        case 1:
+            if ($b) {
+                return;
+            }
+            break;
+        case 2:
+            if ($c) {
+                x();
+            }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        } else if ($b) {
+            $x = 1;
+        }
+        if ($c) {
+            $y = 1;
+        }
+    }
+  - |
+    <?php if (!$user) { return; } ?>
+    <h1>Welcome</h1>
+    <?php if ($admin) { ?>
+        <a href="/admin">Admin</a>
+    <?php } ?>
+  - |
+    <?php foreach ($items as $item): ?>
+        <?php if ($item->visible): ?>
+            <li><?= $item->name ?></li>
+        <?php else: ?>
+            <li>hidden</li>
+        <?php endif; ?>
+    <?php endforeach; ?>
 invalid:
   - |
     <?php
@@ -199,6 +351,27 @@ invalid:
     if ($b):
         x();
     endif;
+  - |
+    <?php
+    class A {
+        public function f($x) {
+            if ($x === null) {
+                throw new InvalidArgumentException('x');
+            }
+            if (is_string($x)) {
+                $x = trim($x);
+            }
+            return $x;
+        }
+    }
+  - |
+    <?php
+    function f($a, $b) {
+        if ($a) return null;
+        if ($b) {
+            x();
+        }
+    }
 ---
 id: braces-placement-php
 valid:
@@ -227,6 +400,36 @@ valid:
     }
     if ($a) {
     }
+  - |
+    <?php
+    if ($a) {
+        ?>
+        <p>x</p>
+        <?php
+    }
+  - |
+    <?php
+    if (
+        $a
+        && $b
+    ) {
+        c();
+    }
+  - |
+    <?php
+    if (array_filter($xs, function ($x) { return $x > 0; })) {
+        y();
+    }
+  - |
+    <?php
+    if ($a === '{') { /* brace */
+        $f = function () { return 1; };
+    }
+  - |
+    <?php
+    if ($a):
+        b();
+    endif;
 invalid:
   - <?php if ($a) { b(); }
   - <?php if ($a) {}
@@ -266,6 +469,27 @@ invalid:
     if ($a) {
         b();
     } else { c(); }
+  - |
+    <?php
+    if ($a
+        && $b)
+    {
+        c();
+    }
+  - |
+    <?php
+    if ($a) {
+        b();
+    } else if ($c)
+    {
+        d();
+    }
+  - |
+    <?php
+    if ($a) // why
+    {
+        b();
+    }
 ---
 id: no-else-after-exit-php
 valid:
@@ -300,6 +524,90 @@ valid:
             y();
         }
     }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1;
+        } elseif ($b) {
+            x();
+        } else {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            x();
+        } else if ($b) {
+            return 1;
+        } else {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            try {
+                return g();
+            } catch (Exception $e) {
+                log($e);
+            }
+        } else {
+            h();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            if ($b) {
+                return;
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            $g = function () {
+                return 1;
+            };
+        } else {
+            y();
+        }
+    }
+  - |
+    <?php
+    function f() {
+        if ($a):
+            return 1;
+        elseif ($b):
+            x();
+        else:
+            y();
+        endif;
+    }
+  - |
+    <?php if ($user) { ?>
+        <p>Hello, <?= $user->name ?></p>
+    <?php } elseif ($guest) { ?>
+        <p>Hello, guest</p>
+    <?php } else { ?>
+        <a href="/login">Log in</a>
+    <?php } ?>
+  - |
+    <?php foreach ($items as $item): ?>
+        <?php if ($item->visible): ?>
+            <li><?= $item->name ?></li>
+        <?php else: ?>
+            <li>hidden</li>
+        <?php endif; ?>
+    <?php endforeach; ?>
 invalid:
   - |
     <?php
@@ -343,6 +651,24 @@ invalid:
             return $c;
         }
     }
+  - |
+    <?php
+    function f() {
+        if ($a):
+            return 1;
+        else:
+            x();
+        endif;
+    }
+  - |
+    <?php
+    function f() {
+        if ($a) {
+            return 1; // early
+        } else {
+            x();
+        }
+    }
 ---
 id: function-reference-php
 valid:
@@ -353,5 +679,16 @@ valid:
   - '<?php array_map(fn($x, $y) => f($y), $a);'
   - '<?php array_map(fn($x) => f($x)->g(), $a);'
   - '<?php usort($a, fn($a, $b) => f($b) <=> f($a));'
+  - '<?php array_map(fn(...$x) => f($x), $a);'
+  - '<?php array_map(fn($x) => f(...$x), $a);'
+  - '<?php array_map(fn($x) => Str::f($x), $a);'
 invalid:
   - '<?php array_map(fn($x) => f($x), $a);'
+  - '<?php $ids = array_filter($ids, fn($id) => is_numeric($id));'
+  - '<?php $rows = array_map(static fn($row) => format_row($row), $rows);'
+  - |
+    <?php
+    $names = array_map(
+        fn($user) => user_name($user),
+        $users
+    );
