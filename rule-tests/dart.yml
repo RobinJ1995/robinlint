@@ -340,5 +340,11 @@ valid:
   - 'void m() { a.map((x) => foo.bar(x)); }'
   - 'void m() { a.map((x) => f(x, 1)); }'
   - 'void m() { a.map((x, y) => f(x)); }'
+  - 'void m() { a.map((x, y) => f(y)); }'
+  - 'void m() { a.map((x) => f(x).g()); }'
+  - 'void m() { a.map((x) => f(1, x)); }'
+  - 'void m() { a.map((x) => f(x) + 1); }'
+  - 'void m() { a.map((x) => f(x)[0]); }'
+  - 'void m() { a.sort((a, b) => f(b).compareTo(f(a))); }'
 invalid:
   - 'void m() { a.map((x) => f(x)); }'

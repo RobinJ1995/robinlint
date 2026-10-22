@@ -454,6 +454,9 @@ valid:
   - 'a.Select(x => F(x, 1));'
   - 'a.Select((x, y) => F(x));'
   - 'a.Select(async x => F(x));'
+  - 'a.Select((x, y) => F(y));'
+  - 'a.Select(x => F(x).G());'
+  - 'a.Sort((a, b) => F(b).CompareTo(F(a)));'
 invalid:
   - 'a.Select(x => F(x));'
   - 'a.Select((x) => F(x));'

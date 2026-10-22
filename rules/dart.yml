@@ -157,9 +157,11 @@ rule:
           has:
             kind: formal_parameter
             pattern: $X
-            nthChild:
-              position: 1
-              reverse: true
+            all:
+              - nthChild: 1
+              - nthChild:
+                  position: 1
+                  reverse: true
       - has:
           field: body
           has:
@@ -170,6 +172,11 @@ rule:
         field: arguments
         has:
           pattern: $X
-          nthChild:
-            position: 1
-            reverse: true
+          all:
+            - nthChild: 1
+            - nthChild:
+                position: 1
+                reverse: true
+  # In (x) => f(x).g() or (x) => f(x) + 1, ((x) => f)(x) is only part of the body.
+  inside:
+    kind: arguments
