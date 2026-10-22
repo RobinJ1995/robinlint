@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { adsInPRBody, adsInCommits, toolCommitAuthors, adsInBranchNames } = require('./ads');
+const { adsInPRBody, adsInPRComments, adsInCommits, toolCommitAuthors, adsInBranchNames } = require('./ads');
 const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
@@ -215,7 +215,7 @@ const ensureEditorconfig = root => {
     }
 };
 
-const main = () => {
+const main = async () => {
     const { exclude, rules } = loadConfig();
     const root = new GitRepo(process.cwd()).showTopLevel();
     const files = listFiles(root, exclude);
@@ -237,6 +237,8 @@ const main = () => {
     // A pull request's branch can be in a fork, unknown to this clone.
     const branches = [branch, ...gitRepo.branches().filter(otherBranch => otherBranch !== branch)]
         .filter(name => name !== null);
+    // Only when enabled; it's the one rule that needs the GitHub API.
+    const comments = pullRequest !== null && rules['no-ads-in-pr-comments'] ? await pullRequest.comments() : [];
     const isNew = finding => {
         if (finding.commit !== null) {
             return newCommits.includes(finding.commit);
@@ -256,6 +258,7 @@ const main = () => {
         ...runAstGrep(root, files),
         ...runEditorconfigChecker(root, files),
         ...adsInPRBody(pullRequest),
+        ...adsInPRComments(comments),
         ...adsInCommits(commits),
         ...toolCommitAuthors(commits),
         ...adsInBranchNames(branches)
@@ -278,4 +281,6 @@ const main = () => {
     return results.every(passed => passed) ? 0 : 1;
 };
 
-process.exitCode = main();
+main().then(exitCode => {
+    process.exitCode = exitCode;
+});
