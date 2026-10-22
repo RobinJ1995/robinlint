@@ -191,6 +191,5 @@ rule:
           has:
             kind: argument
             matches: only-child
-            has:
-              kind: identifier
-              pattern: $X
+            # The whole argument, so `F(ref x)` and `F(x: 1)` don't count.
+            pattern: $X
