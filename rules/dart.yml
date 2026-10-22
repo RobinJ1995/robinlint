@@ -164,6 +164,9 @@ rule:
                   reverse: true
       - has:
           field: body
+          # f(x) is not a Future, so (x) async => f(x) differs from f.
+          not:
+            regex: '^async\b'
           has:
             kind: identifier
             pattern: $F

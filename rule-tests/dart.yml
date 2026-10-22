@@ -701,6 +701,7 @@ valid:
   - 'void m() { a.map((x) => f(x) + 1); }'
   - 'void m() { a.map((x) => f(x)[0]); }'
   - 'void m() { a.sort((a, b) => f(b).compareTo(f(a))); }'
+  - 'void m() { a.map((x) async => f(x)); }'
   - 'void m() { a.then((x) async => await f(x)); }'
   - 'void m() { a.where((x) => !f(x)); }'
   - 'void m() { a.map((x) => f(x)!); }'
