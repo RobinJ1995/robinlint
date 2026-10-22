@@ -73,6 +73,16 @@ valid:
             y()
   - |
     def f():
+        if a:
+            return 1
+        elif b:
+            return 2
+        else:
+            log()
+        if c:
+            y()
+  - |
+    def f():
         try:
             if a:
                 return 1
@@ -100,6 +110,16 @@ valid:
             yield 1
         if b:
             yield 2
+  - |
+    def f():
+        if a:
+            return 1
+        elif b:
+            return 2
+        elif c:
+            log()
+        if d:
+            y()
 invalid:
   - |
     def f():

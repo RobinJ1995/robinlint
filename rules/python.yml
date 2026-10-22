@@ -26,12 +26,13 @@ utils:
       matches: ends-with-exit
     not:
       has:
-        field: alternative
-        not:
-          kind: elif_clause
-          has:
-            field: consequence
-            matches: ends-with-exit
+        any:
+          - kind: else_clause
+          - kind: elif_clause
+            not:
+              has:
+                field: consequence
+                matches: ends-with-exit
 rule:
   kind: if_statement
   follows:
