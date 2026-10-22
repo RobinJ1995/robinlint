@@ -430,6 +430,9 @@ valid:
   - 'a.forEach(x -> f(x, 1));'
   - 'a.forEach((x, y) -> f(x));'
   - 'a.forEach(x -> { f(x); });'
+  - 'a.forEach((x, y) -> f(y));'
+  - 'a.forEach(x -> f(x).g());'
+  - 'a.sort((a, b) -> f(b).compareTo(f(a)));'
 invalid:
   - 'a.forEach(x -> f(x));'
   - 'a.forEach((x) -> f(x));'

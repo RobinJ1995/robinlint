@@ -162,5 +162,8 @@ valid:
   - 'map(lambda x: json.loads(x), a)'
   - 'map(lambda x: f(x, 1), a)'
   - 'map(lambda x, y: f(x), a)'
+  - 'map(lambda x, y: f(y), a)'
+  - 'map(lambda x: f(x).g(), a)'
+  - 'sorted(a, key=lambda x: f(x).lower())'
 invalid:
   - 'map(lambda x: f(x), a)'

@@ -346,6 +346,10 @@ valid:
   - 'a.map { x -> f(x, 1) }'
   - 'a.map { x, y -> f(x) }'
   - 'a.map { f(it) { 1 } }'
+  - 'a.map { x, y -> f(y) }'
+  - 'a.map { x -> f(x).g() }'
+  - 'a.map { f(it).g() }'
+  - 'a.sortedWith { a, b -> f(b).compareTo(f(a)) }'
 invalid:
   - 'a.map { x -> f(x) }'
   - 'a.map { f(it) }'

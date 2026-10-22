@@ -304,6 +304,9 @@ valid:
   - 'a.map((x, y) => f(x));'
   - 'a.map(async x => f(x));'
   - 'a.map(x => f(y));'
+  - 'a.map((x, y) => f(y));'
+  - 'a.map(x => f(x).g());'
+  - 'a.sort((a, b) => f(b).localeCompare(f(a)));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
