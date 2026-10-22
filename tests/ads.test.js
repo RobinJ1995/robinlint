@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const Assert = require('node:assert/strict');
-const { isPRAd, isCommitAd } = require('../ads');
+const { isPRAd, isCommitAd, isToolAuthor } = require('../ads');
 
 test('Claude Code footers', () => {
     Assert.ok(isPRAd('🤖 Generated with [Claude Code](https://claude.com/claude-code)'));
@@ -68,4 +68,20 @@ test('commit message ads', () => {
 test('commit message metadata trailers are not ads', () => {
     Assert.ok(!isCommitAd('Claude-Session: https://claude.ai/code/session_01AbCdEfGhIjKlMnOpQrStUv'));
     Assert.ok(!isCommitAd('Amp-Thread-ID: https://ampcode.com/threads/T-01234567-89ab-cdef-0123-456789abcdef'));
+});
+
+test('tools as commit authors', () => {
+    Assert.ok(isToolAuthor({ name: 'Claude', email: 'noreply@anthropic.com' }));
+    Assert.ok(isToolAuthor({ name: 'claude[bot]', email: '209825114+claude[bot]@users.noreply.github.com' }));
+    Assert.ok(isToolAuthor({ name: 'claude[bot]', email: '41898282+claude[bot]@users.noreply.github.com' }));
+    Assert.ok(isToolAuthor({ name: 'copilot-swe-agent[bot]', email: '198982749+Copilot@users.noreply.github.com' }));
+    Assert.ok(isToolAuthor({ name: 'Cursor Agent', email: 'cursoragent@cursor.com' }));
+    Assert.ok(isToolAuthor({ name: 'google-labs-jules[bot]', email: '161369871+google-labs-jules[bot]@users.noreply.github.com' }));
+    Assert.ok(isToolAuthor({ name: 'amazon-q-developer[bot]', email: '208079219+amazon-q-developer[bot]@users.noreply.github.com' }));
+});
+
+test('people as commit authors', () => {
+    Assert.ok(!isToolAuthor({ name: 'Alice', email: 'alice@example.com' }));
+    Assert.ok(!isToolAuthor({ name: 'Claude', email: 'claude@example.com' }));
+    Assert.ok(!isToolAuthor({ name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' }));
 });

@@ -1,4 +1,5 @@
 const AD_ERROR = 'Commit messages and PR descriptions should not contain tool-injected advertising';
+const TOOL_AUTHOR_ERROR = 'The commit author indicates who is responsible for a given piece of code. Tools cannot be held accountable, so cannot be commit authors.';
 
 const TOOL_CO_AUTHOR_EMAILS = [
     // Claude Code
@@ -21,6 +22,23 @@ const TOOL_CO_AUTHOR_EMAILS = [
     'noreply@opencode.ai'
 ];
 const CO_AUTHOR_REGEX = /^co-authored-by: .*<(?<email>[^>]+)>$/gim;
+
+const TOOL_AUTHOR_EMAILS = [
+    // Claude Code on the web
+    'noreply@anthropic.com',
+    // Claude GitHub app
+    '209825114+claude[bot]@users.noreply.github.com',
+    // Claude Code GitHub Action, by default; 41898282 is actually github-actions' id.
+    '41898282+claude[bot]@users.noreply.github.com',
+    // Copilot coding agent
+    '198982749+copilot@users.noreply.github.com',
+    // Cursor cloud agent
+    'cursoragent@cursor.com',
+    // Jules
+    '161369871+google-labs-jules[bot]@users.noreply.github.com',
+    // Amazon Q Developer
+    '208079219+amazon-q-developer[bot]@users.noreply.github.com'
+];
 
 const PR_AD_RULES = [
     // Claude Code
@@ -60,6 +78,8 @@ const isPRAd = text => PR_AD_RULES.some(rule => rule(text));
 
 const isCommitAd = text => COMMIT_AD_RULES.some(rule => rule(text));
 
+const isToolAuthor = author => TOOL_AUTHOR_EMAILS.includes(author.email.toLowerCase());
+
 const adsInText = (isAd, rule, where, text) => {
     if (!isAd(text ?? '')) {
         return [];
@@ -96,4 +116,15 @@ const adsInCommits = commits => commits.flatMap(commit =>
         }))
 );
 
-module.exports = { isPRAd, isCommitAd, adsInPRBody, adsInCommits };
+const toolCommitAuthors = commits => commits
+    .filter(commit => isToolAuthor(commit.author))
+    .map(commit => ({
+        rule: 'no-tools-as-commit-author',
+        file: null,
+        line: null,
+        commit: commit.sha,
+        output: `commit ${commit.sha.slice(0, 7)} author: error: ${TOOL_AUTHOR_ERROR}`,
+        isError: true
+    }));
+
+module.exports = { isPRAd, isCommitAd, isToolAuthor, adsInPRBody, adsInCommits, toolCommitAuthors };

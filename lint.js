@@ -6,7 +6,7 @@ const Fs = require('node:fs');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
-const { adsInPRBody, adsInCommits } = require('./ads');
+const { adsInPRBody, adsInCommits, toolCommitAuthors } = require('./ads');
 const { GitRepo, PullRequest, Push } = require('./git');
 
 const ACTION_DIR = __dirname;
@@ -247,7 +247,8 @@ const main = () => {
         ...runAstGrep(root, files),
         ...runEditorconfigChecker(root, files),
         ...adsInPRBody(pullRequest),
-        ...adsInCommits(commits)
+        ...adsInCommits(commits),
+        ...toolCommitAuthors(commits)
     ];
     const enabledRules = Object.keys(rules).filter(rule => rules[rule]);
     const results = enabledRules.map(rule => {

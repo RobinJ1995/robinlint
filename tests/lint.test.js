@@ -750,3 +750,42 @@ test('an ad in a pull request commit fails', () => {
     Assert.equal(result.status, 1, result.output);
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
+
+const TOOL_AUTHOR_ERROR = 'The commit author indicates who is responsible for a given piece of code. Tools cannot be held accountable, so cannot be commit authors.';
+
+const commitAsClaude = repo => {
+    gitIn(repo, ['commit', '-q', '--allow-empty', '-m', 'fix thing', '--author=Claude <noreply@anthropic.com>']);
+
+    return gitIn(repo, ['rev-parse', 'HEAD']);
+};
+
+test('a tool as the latest commit author fails', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    const sha = commitAsClaude(repo);
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} author: error: ${TOOL_AUTHOR_ERROR}`), result.output);
+});
+
+test('only-new commit author checks skip older commits', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    commitAsClaude(repo);
+    commitFiles(repo, { 'b.txt': 'b\n' });
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('no-tools-as-commit-author: true checks every commit', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    const sha = commitAsClaude(repo);
+    commitFiles(repo, { 'b.txt': 'b\n' });
+
+    const result = lintRepo(repo, '', 'no-tools-as-commit-author: true\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} author: error: ${TOOL_AUTHOR_ERROR}`), result.output);
+});
