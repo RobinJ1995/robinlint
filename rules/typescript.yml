@@ -139,3 +139,8 @@ rule:
 constraints:
   F:
     kind: identifier
+    # Passed to map etc., these get the index as their optional second argument.
+    not:
+      any:
+        - pattern: parseInt
+        - pattern: fetch

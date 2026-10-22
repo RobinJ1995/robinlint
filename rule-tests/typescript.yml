@@ -19,6 +19,33 @@ valid:
         e();
     }
   - 'x = a ? b : c;'
+  - |
+    function isFoo(x: unknown): x is Foo {
+        if (typeof x !== 'object' || x === null) {
+            return false;
+        }
+        return 'foo' in x;
+    }
+  - 'while (queue.length > 0) queue.pop();'
+  - 'for (const x of xs) process(x);'
+  - "type A<T> = T extends string ? 'a' : 'b';"
+  - |
+    class C {
+        @Input() set value(v: string) {
+            if (v) {
+                this.v = v!;
+            } /* c */ else /* d */ {
+                this.v = '';
+            }
+        }
+    }
+  - |
+    if (a) {
+        b();
+    } else /* c */ if (c) {
+        d();
+    }
+  - 'const abs = (x: number): number => (x > 0 ? x : -x);'
 invalid:
   - if (a) b();
   - if (a) return;
@@ -42,6 +69,21 @@ invalid:
   - |
     if (a) if (b) {
         c();
+    }
+  - |
+    function first<T>(xs: T[]): T | undefined {
+        if (xs.length === 0) return undefined;
+        return xs[0]!;
+    }
+  - |
+    class C {
+        get name(): string {
+            if (this.first) {
+                return this.first;
+            } else if (this.last) {
+                return this.last;
+            } else return '';
+        }
     }
 ---
 id: elseif-typescript
@@ -94,6 +136,68 @@ valid:
     x = 1;
     if (b) {
         y = 1;
+    }
+  - |
+    function f(x: Foo | undefined): number {
+        if (!x) {
+            return 0;
+        }
+        const y = x.bar;
+        if (y) {
+            return 1;
+        }
+        return 2;
+    }
+  - |
+    if (a) {
+        for (const x of xs) {
+            if (x) {
+                break;
+            }
+        }
+    }
+    if (b) {
+        c();
+    }
+  - |
+    if (a) {
+        try {
+            return;
+        } finally {
+            cleanup();
+        }
+    }
+    if (b) {
+        c();
+    }
+  - |
+    if (a) {
+        const g = (): number => {
+            return 1;
+        };
+    }
+    if (b) {
+        c();
+    }
+  - |
+    switch (k) {
+        case 1:
+            if (a) {
+                return;
+            }
+            break;
+        case 2:
+            if (b) {
+                c();
+            }
+    }
+  - |
+    if (a) {
+        doSomething();
+        // return;
+    }
+    if (b) {
+        c();
     }
 invalid:
   - |
@@ -164,6 +268,34 @@ invalid:
   - |
     if (a) return;
     if (b) return;
+  - |
+    if (a) {
+        return;
+    }
+    if (b) {
+        c();
+    } else {
+        d();
+    }
+  - |
+    outer: {
+        if (a) {
+            break outer;
+        }
+        if (b) {
+            c();
+        }
+    }
+  - |
+    function f(node: Node | null): string {
+        if (node === null) {
+            throw new TypeError('missing node');
+        }
+        if (node.kind === Kind.Leaf) {
+            return node.text;
+        }
+        return '';
+    }
 ---
 id: braces-placement-typescript
 valid:
@@ -195,6 +327,38 @@ valid:
         b();
     }
   - 'function f() { return { a: 1 }; }'
+  - |
+    if (isEqual(a, { b: 1 })) {
+        c();
+    }
+  - |
+    if (
+        a &&
+        b
+    ) {
+        c();
+    }
+  - |
+    if (foo(a)
+        && b) {
+        c();
+    }
+  - |
+    if (a) {
+        xs.forEach((x) => { f(x); });
+    }
+  - |
+    if (s === `${x}`) {
+        c();
+    }
+  - |
+    if (a) {
+        b();
+    } else { // why
+        c();
+    }
+  - 'try { a(); } catch { b(); }'
+  - 'while (a) { b(); }'
 invalid:
   - if (a) { b(); }
   - if (a) {}
@@ -235,6 +399,23 @@ invalid:
         }
         return a as T;
     }
+  - |
+    if (a) {
+        b();
+    } else {
+        c(); }
+  - |
+    class C {
+        flush(): void {
+            if (this.items.length > 0) // non-empty
+            {
+                this.send(this.items);
+            }
+        }
+    }
+  - |
+    if (a) {
+        const o = { a: 1 }; }
 ---
 id: no-else-after-exit-typescript
 valid:
@@ -262,6 +443,66 @@ valid:
             return a;
         } else if (b) {
             x();
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            for (const x of xs) {
+                break;
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            const g = (): number => {
+                return 1;
+            };
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            try {
+                return;
+            } catch (e) {
+                log(e);
+            }
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            x();
+        } else if (b) {
+            return;
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            // return;
+        } else {
+            y();
+        }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            if (b) {
+                return;
+            }
         } else {
             y();
         }
@@ -295,6 +536,31 @@ invalid:
             }
         }
     }
+  - |
+    function f(x: string | number): string {
+        if (typeof x === 'string') {
+            return x;
+        } else {
+            return x.toFixed(2);
+        }
+    }
+  - |
+    switch (k) {
+        case 1:
+            if (a) {
+                break;
+            } else {
+                y();
+            }
+    }
+  - |
+    function f(): void {
+        if (a) {
+            return; // done
+        } /* c */ else {
+            y();
+        }
+    }
 ---
 id: function-reference-typescript
 valid:
@@ -307,6 +573,22 @@ valid:
   - 'a.map((x, y) => f(y));'
   - 'a.map(x => f(x).g());'
   - 'a.sort((a, b) => f(b).localeCompare(f(a)));'
+  - 'a.map((x: string) => f(x));'
+  - 'a.map((x): number => f(x));'
+  - 'a.map(<T>(x: T) => f(x));'
+  - 'a.map((x) => f<string>(x));'
+  - 'a.map((x) => f?.(x));'
+  - 'a.map((x) => f(x!));'
+  - 'a.map((x) => f(x as Foo));'
+  - 'a.map((x) => f(x)!);'
+  - 'a.map((x) => new Foo(x));'
+  - 'a.map(({ value }) => trim(value));'
+  - 'paths.map((p) => import(p));'
+  - "['1', '2'].map((x) => parseInt(x));"
+  - 'Promise.all(urls.map((url) => fetch(url)));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
+  - 'a.filter((x) => isDefined(x));'
+  - 'promise.then((res) => handle(res));'
+  - 'a.map((x) => f(/* c */ x));'
