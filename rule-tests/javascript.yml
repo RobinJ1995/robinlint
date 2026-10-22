@@ -299,6 +299,9 @@ valid:
   - 'a.map((x, y) => f(y));'
   - 'a.map(x => f(x).g());'
   - 'a.sort((a, b) => f(b).localeCompare(f(a)));'
+  - "['1', '2'].map(x => parseInt(x));"
+  - 'await new Promise(resolve => setTimeout(resolve));'
+  - 'Promise.all(urls.map(url => fetch(url)));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
