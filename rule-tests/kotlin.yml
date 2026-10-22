@@ -54,6 +54,44 @@ valid:
         val name: String
             get() = if (a) "x" else "y"
     }
+  - |
+    fun f(state: State): Color {
+        val color = when (state) {
+            State.Error -> {
+                log(state)
+                if (state.critical) Color.Red else Color.Orange
+            }
+            else -> Color.Gray
+        }
+        return color
+    }
+  - |
+    fun f(s: String) {
+        val n = try {
+            if (s.isEmpty()) 0 else s.toInt()
+        } catch (e: NumberFormatException) {
+            if (strict) throw e else -1
+        }
+    }
+  - |
+    fun f() {
+        val x = if (a) {
+            prepare()
+            if (b) 1 else 2
+        } else {
+            3
+        }
+    }
+  - |
+    fun f(): List<Int> = xs.map {
+        when (it) {
+            null -> {
+                log()
+                if (strict) -1 else 0
+            }
+            else -> it
+        }
+    }
 invalid:
   - |
     fun f() {
@@ -400,8 +438,27 @@ valid:
     }
   - |
     fun f() {
+        val ys = xs.map { if (it > 0) { it } else { 0 } }
+        val y = when (x) {
+            1 -> {
+                log()
+                if (a) { 1 } else { 2 }
+            }
+            else -> 0
+        }
+    }
+  - |
+    fun f() {
         if (a) {
             println("{ } }")
+        }
+    }
+  - |
+    fun f() {
+        val x = try {
+            if (a) { 1 } else { 2 }
+        } catch (e: Exception) {
+            0
         }
     }
 invalid:
@@ -545,6 +602,15 @@ valid:
     fun f(x: Int?): Int? {
         val y = x?.let { if (it < 0) return null else it * 2 }
         return y
+    }
+  - |
+    fun f(s: String): Int? {
+        val n = try {
+            if (s.isBlank()) return null else s.toInt()
+        } catch (e: NumberFormatException) {
+            -1
+        }
+        return n
     }
 invalid:
   - |
