@@ -69,6 +69,25 @@ class GitRepo {
 
     head = () => this._cmd(['rev-parse', 'HEAD']).trim();
 
+    // None when HEAD is detached.
+    currentBranch = () => {
+        const branch = this._cmd(['branch', '--show-current']).trim();
+
+        return branch !== '' ? branch : null;
+    };
+
+    // The local branches and origin's, as far as this clone knows them; a shallow CI checkout only has the one it checked out.
+    branches = () => {
+        // refs/heads/<branch>
+        const local = this._cmd(['for-each-ref', '--format=%(refname:lstrip=2)', 'refs/heads']).split('\n');
+        // refs/remotes/origin/<branch>
+        const remote = this._cmd(['for-each-ref', '--format=%(refname:lstrip=3)', 'refs/remotes/origin']).split('\n');
+
+        return [...new Set([...local, ...remote])]
+            // origin/HEAD points at the default branch.
+            .filter(branch => branch !== '' && branch !== 'HEAD');
+    };
+
     // HEAD's whole history, newest first; none before the first commit.
     commits = () => {
         if (!this.hasObject('HEAD')) {
@@ -195,6 +214,8 @@ class PullRequest {
 
         return gitRepo.mergeBase(base.sha, 'HEAD');
     };
+
+    branch = () => this.event.pull_request.head.ref;
 }
 
 class Push {
@@ -229,6 +250,13 @@ class Push {
         }
 
         return gitRepo.mergeBase(defaultBranch, after);
+    };
+
+    // A pushed tag has no branch.
+    branch = () => {
+        const { ref } = this.event;
+
+        return ref.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : null;
     };
 }
 

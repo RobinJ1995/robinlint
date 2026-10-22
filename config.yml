@@ -17,3 +17,4 @@ rules:
   no-ads-in-prs: only-new
   no-ads-in-commits: only-new
   no-tools-as-commit-author: only-new
+  no-ads-in-branch-names: false

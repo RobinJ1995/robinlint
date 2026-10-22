@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const Assert = require('node:assert/strict');
-const { isPRAd, isCommitAd, isToolAuthor } = require('../ads');
+const { isPRAd, isCommitAd, isToolAuthor, isToolBranch } = require('../ads');
 
 test('Claude Code footers', () => {
     Assert.ok(isPRAd('🤖 Generated with [Claude Code](https://claude.com/claude-code)'));
@@ -84,4 +84,22 @@ test('people as commit authors', () => {
     Assert.ok(!isToolAuthor({ name: 'Alice', email: 'alice@example.com' }));
     Assert.ok(!isToolAuthor({ name: 'Claude', email: 'claude@example.com' }));
     Assert.ok(!isToolAuthor({ name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' }));
+});
+
+test('tool branch names', () => {
+    Assert.ok(isToolBranch('claude/fix-thing-a1b2c3'));
+    Assert.ok(isToolBranch('codex/fix-thing'));
+    Assert.ok(isToolBranch('d92ewq-codex/fix-thing'));
+    Assert.ok(isToolBranch('copilot/fix-thing'));
+    Assert.ok(isToolBranch('cursor/fix-thing-1a2b'));
+    Assert.ok(isToolBranch('junie/issue-12'));
+    Assert.ok(isToolBranch('gemini-fix-12'));
+});
+
+test('people naming branches after the tools are not ads', () => {
+    Assert.ok(!isToolBranch('feature/claude-api'));
+    Assert.ok(!isToolBranch('fix/cursor-position'));
+    Assert.ok(!isToolBranch('gemini-fix-for-dates'));
+    Assert.ok(!isToolBranch('codexes/thing'));
+    Assert.ok(!isToolBranch('fix-codex/thing'));
 });

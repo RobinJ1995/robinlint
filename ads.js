@@ -1,5 +1,6 @@
 const AD_ERROR = 'Commit messages and PR descriptions should not contain tool-injected advertising';
 const TOOL_AUTHOR_ERROR = 'The commit author indicates who is responsible for a given piece of code. Tools cannot be held accountable, so cannot be commit authors.';
+const BRANCH_AD_ERROR = 'Branch names should not contain tool-injected advertising';
 
 const TOOL_CO_AUTHOR_EMAILS = [
     // Claude Code
@@ -74,11 +75,28 @@ const COMMIT_AD_RULES = [
     text => [...text.matchAll(CO_AUTHOR_REGEX)].some(({ groups }) => TOOL_CO_AUTHOR_EMAILS.includes(groups.email.toLowerCase()))
 ];
 
+const BRANCH_AD_RULES = [
+    // Claude Code
+    branch => branch.startsWith('claude/'),
+    // Codex, sometimes behind a random prefix like d92ewq-codex/
+    branch => /^([a-z0-9]{6}-)?codex\//.test(branch),
+    // Copilot coding agent
+    branch => branch.startsWith('copilot/'),
+    // Cursor cloud agents
+    branch => branch.startsWith('cursor/'),
+    // Junie
+    branch => branch.startsWith('junie/'),
+    // Gemini CLI's issue fixer workflow
+    branch => /^gemini-fix-\d+$/.test(branch)
+];
+
 const isPRAd = text => PR_AD_RULES.some(rule => rule(text));
 
 const isCommitAd = text => COMMIT_AD_RULES.some(rule => rule(text));
 
 const isToolAuthor = author => TOOL_AUTHOR_EMAILS.includes(author.email.toLowerCase());
+
+const isToolBranch = branch => BRANCH_AD_RULES.some(rule => rule(branch));
 
 const adsInText = (isAd, rule, where, text) => {
     if (!isAd(text ?? '')) {
@@ -90,6 +108,7 @@ const adsInText = (isAd, rule, where, text) => {
         file: null,
         line: null,
         commit: null,
+        branch: null,
         output: `${where}: error: ${AD_ERROR}`,
         isError: true
     }];
@@ -123,8 +142,21 @@ const toolCommitAuthors = commits => commits
         file: null,
         line: null,
         commit: commit.sha,
+        branch: null,
         output: `commit ${commit.sha.slice(0, 7)} author: error: ${TOOL_AUTHOR_ERROR}`,
         isError: true
     }));
 
-module.exports = { isPRAd, isCommitAd, isToolAuthor, adsInPRBody, adsInCommits, toolCommitAuthors };
+const adsInBranchNames = branches => branches
+    .filter(isToolBranch)
+    .map(branch => ({
+        rule: 'no-ads-in-branch-names',
+        file: null,
+        line: null,
+        commit: null,
+        branch,
+        output: `branch ${branch}: error: ${BRANCH_AD_ERROR}`,
+        isError: true
+    }));
+
+module.exports = { isPRAd, isCommitAd, isToolAuthor, isToolBranch, adsInPRBody, adsInCommits, toolCommitAuthors, adsInBranchNames };

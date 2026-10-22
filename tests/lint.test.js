@@ -447,7 +447,8 @@ test('only-new rules check only the lines a pull request adds', () => {
                     sha: base
                 },
                 head: {
-                    sha: head
+                    sha: head,
+                    ref: 'pr'
                 }
             }
         },
@@ -472,7 +473,8 @@ test('only-new rules check only the lines a pull request checked out at its head
                     sha: base
                 },
                 head: {
-                    sha: head
+                    sha: head,
+                    ref: 'pr'
                 }
             }
         },
@@ -491,6 +493,7 @@ test('only-new rules check only the lines a push adds', () => {
         repo,
         eventName: 'push',
         event: {
+            ref: 'refs/heads/master',
             before,
             after
         },
@@ -514,6 +517,7 @@ test('only-new rules check only the lines a new branch adds', () => {
             repository: {
                 default_branch: 'master'
             },
+            ref: 'refs/heads/new',
             before: '0'.repeat(40),
             after
         },
@@ -588,7 +592,8 @@ const lintPullRequest = ({ eventName = 'pull_request', title = 'fix thing', body
                     sha: base
                 },
                 head: {
-                    sha: head
+                    sha: head,
+                    ref: 'pr'
                 }
             }
         },
@@ -741,7 +746,8 @@ test('an ad in a pull request commit fails', () => {
                     sha: base
                 },
                 head: {
-                    sha: head
+                    sha: head,
+                    ref: 'pr'
                 }
             }
         },
@@ -788,4 +794,73 @@ test('no-tools-as-commit-author: true checks every commit', () => {
     const result = lintRepo(repo, '', 'no-tools-as-commit-author: true\n');
     Assert.equal(result.status, 1, result.output);
     Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} author: error: ${TOOL_AUTHOR_ERROR}`), result.output);
+});
+
+const BRANCH_AD_ERROR = 'Branch names should not contain tool-injected advertising';
+
+test('tool branch names are not checked by default', () => {
+    const repo = gibRepo({});
+    gitIn(repo, ['switch', '-q', '-c', 'claude/fix-thing']);
+    commitFiles(repo, { 'a.txt': 'a\n' });
+
+    const result = lintRepo(repo);
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('a tool name for the checked out branch fails', () => {
+    const repo = gibRepo({});
+    gitIn(repo, ['switch', '-q', '-c', 'claude/fix-thing']);
+    commitFiles(repo, { 'a.txt': 'a\n' });
+
+    const result = lintRepo(repo, '', 'no-ads-in-branch-names: only-new\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`branch claude/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
+});
+
+test('only-new branch checks skip other branches', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    gitIn(repo, ['branch', 'claude/fix-thing']);
+    gitIn(repo, ['update-ref', 'refs/remotes/origin/codex/fix-thing', 'HEAD']);
+
+    const result = lintRepo(repo, '', 'no-ads-in-branch-names: only-new\n');
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('no-ads-in-branch-names: true checks every branch', () => {
+    const repo = gibRepo({});
+    commitFiles(repo, { 'a.txt': 'a\n' });
+    gitIn(repo, ['branch', 'claude/fix-thing']);
+    gitIn(repo, ['update-ref', 'refs/remotes/origin/codex/fix-thing', 'HEAD']);
+
+    const result = lintRepo(repo, '', 'no-ads-in-branch-names: true\n');
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`branch claude/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
+    Assert.ok(result.output.includes(`branch codex/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
+});
+
+test('a tool name for a pull request branch fails', () => {
+    const repo = gibRepo({});
+    const base = commitFiles(repo, { 'a.txt': 'a\n' });
+    gitIn(repo, ['switch', '-q', '-c', 'pr']);
+    const head = commitFiles(repo, { 'b.txt': 'b\n' });
+
+    const result = lintEvent({
+        repo,
+        eventName: 'pull_request',
+        event: {
+            pull_request: {
+                base: {
+                    sha: base
+                },
+                head: {
+                    sha: head,
+                    ref: 'copilot/fix-thing'
+                }
+            }
+        },
+        rules: 'no-ads-in-branch-names: only-new\n'
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`branch copilot/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
 });
