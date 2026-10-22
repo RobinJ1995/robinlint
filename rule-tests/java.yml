@@ -849,4 +849,6 @@ valid:
 invalid:
   - 'a.forEach(x -> f(x));'
   - 'a.forEach((x) -> f(x));'
+  - 'a.sort((a, b) -> compare(a, b));'
+  - 'a.map(x -> this.f(x));'
   - 'a.map(x -> b.stream().map(y -> f(y)));'

@@ -162,7 +162,9 @@ message: pass a method reference, not a lambda that only calls the method.
 rule:
   any:
     - pattern: $X -> $F($X)
-    - pattern: ($X) -> $F($X)
+    - pattern: ($$$X) -> $F($$$X)
+    - pattern: $X -> this.$F($X)
+    - pattern: ($$$X) -> this.$F($$$X)
 constraints:
   F:
     kind: identifier
