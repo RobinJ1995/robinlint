@@ -333,3 +333,12 @@ invalid:
             }
         }
     }
+---
+id: function-reference-dart
+valid:
+  - 'void m() { a.map(f); }'
+  - 'void m() { a.map((x) => foo.bar(x)); }'
+  - 'void m() { a.map((x) => f(x, 1)); }'
+  - 'void m() { a.map((x, y) => f(x)); }'
+invalid:
+  - 'void m() { a.map((x) => f(x)); }'

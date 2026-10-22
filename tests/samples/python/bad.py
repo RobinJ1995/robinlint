@@ -23,4 +23,5 @@ def load(gate, ok, items):
         return items
     else:  # expect: no-else-after-exit
         log("not ok")
+    names = map(lambda item: str(item), items)  # expect: function-reference
     return items

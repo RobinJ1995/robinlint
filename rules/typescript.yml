@@ -125,3 +125,17 @@ rule:
   inside:
     kind: if_statement
     matches: exiting-branches
+---
+id: function-reference-typescript
+language: typescript
+severity: error
+message: pass the function itself, not a lambda that only calls it.
+rule:
+  any:
+    - pattern: $X => $F($X)
+    - pattern: ($X) => $F($X)
+  not:
+    regex: ^async\b
+constraints:
+  F:
+    kind: identifier

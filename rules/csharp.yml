@@ -149,3 +149,48 @@ rule:
     kind: if_statement
     field: alternative
     matches: exiting-branches
+---
+id: function-reference-csharp
+language: csharp
+severity: error
+message: pass the method group, not a lambda that only calls the method.
+utils:
+  only-child:
+    all:
+      - nthChild: 1
+      - nthChild:
+          position: 1
+          reverse: true
+rule:
+  kind: lambda_expression
+  not:
+    regex: ^async\b
+  any:
+    - has:
+        field: parameters
+        kind: implicit_parameter
+        pattern: $X
+    - has:
+        field: parameters
+        kind: parameter_list
+        has:
+          kind: parameter
+          matches: only-child
+          has:
+            field: name
+            pattern: $X
+  has:
+    field: body
+    kind: invocation_expression
+    all:
+      - has:
+          field: function
+          kind: identifier
+      - has:
+          field: arguments
+          has:
+            kind: argument
+            matches: only-child
+            has:
+              kind: identifier
+              pattern: $X

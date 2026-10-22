@@ -422,3 +422,14 @@ invalid:
             }
         }
     }
+---
+id: function-reference-java
+valid:
+  - 'a.forEach(this::f);'
+  - 'a.forEach(x -> foo.bar(x));'
+  - 'a.forEach(x -> f(x, 1));'
+  - 'a.forEach((x, y) -> f(x));'
+  - 'a.forEach(x -> { f(x); });'
+invalid:
+  - 'a.forEach(x -> f(x));'
+  - 'a.forEach((x) -> f(x));'

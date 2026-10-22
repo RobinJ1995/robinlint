@@ -41,6 +41,7 @@ class Loader {
         } else {  // expect: no-else-after-exit
             Log("not ok");
         }
+        items.ForEach(item => Log(item));  // expect: function-reference
         return null;
     }
 }

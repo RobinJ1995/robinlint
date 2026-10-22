@@ -154,3 +154,15 @@ rule:
     kind: if_statement
     field: alternative
     matches: exiting-branches
+---
+id: function-reference-java
+language: java
+severity: error
+message: pass a method reference, not a lambda that only calls the method.
+rule:
+  any:
+    - pattern: $X -> $F($X)
+    - pattern: ($X) -> $F($X)
+constraints:
+  F:
+    kind: identifier

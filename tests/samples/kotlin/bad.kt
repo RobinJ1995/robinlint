@@ -44,5 +44,6 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
     } else {  // expect: no-else-after-exit
         log("not ok")
     }
+    items.forEach { log(it) }  // expect: function-reference
     return null
 }

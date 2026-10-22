@@ -42,6 +42,7 @@ function load(gate, ok, items) {
     } else {  // expect: no-else-after-exit
         log('not ok');
     }
+    items.map(item => parse(item));  // expect: function-reference
     items.forEach((item) => log(item.name));  // expect: no-single-parameter-brackets
     return items;
 }

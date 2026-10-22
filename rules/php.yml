@@ -152,3 +152,41 @@ rule:
   inside:
     kind: if_statement
     matches: exiting-branches
+---
+id: function-reference-php
+language: php
+severity: error
+message: pass a first-class callable, not an arrow function that only calls the function.
+utils:
+  only-child:
+    all:
+      - nthChild: 1
+      - nthChild:
+          position: 1
+          reverse: true
+rule:
+  kind: arrow_function
+  has:
+    field: parameters
+    has:
+      kind: simple_parameter
+      matches: only-child
+      has:
+        field: name
+        pattern: $X
+  all:
+    - has:
+        field: body
+        kind: function_call_expression
+        all:
+          - has:
+              field: function
+              kind: name
+          - has:
+              field: arguments
+              has:
+                kind: argument
+                matches: only-child
+                has:
+                  kind: variable_name
+                  pattern: $X

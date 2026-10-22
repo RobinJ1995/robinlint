@@ -140,3 +140,36 @@ rule:
     kind: if_statement
     field: alternative
     matches: exiting-branches
+---
+id: function-reference-dart
+language: dart
+severity: error
+message: pass a tear-off, not a lambda that only calls the function.
+# tree-sitter-dart parses (x) => f(x) as ((x) => f)(x).
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: function_expression
+    all:
+      - has:
+          field: parameters
+          has:
+            kind: formal_parameter
+            pattern: $X
+            nthChild:
+              position: 1
+              reverse: true
+      - has:
+          field: body
+          has:
+            kind: identifier
+            pattern: $F
+  all:
+    - has:
+        field: arguments
+        has:
+          pattern: $X
+          nthChild:
+            position: 1
+            reverse: true

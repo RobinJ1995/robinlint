@@ -155,3 +155,12 @@ invalid:
             continue
         else:
             y()
+---
+id: function-reference-python
+valid:
+  - 'map(f, a)'
+  - 'map(lambda x: json.loads(x), a)'
+  - 'map(lambda x: f(x, 1), a)'
+  - 'map(lambda x, y: f(x), a)'
+invalid:
+  - 'map(lambda x: f(x), a)'
