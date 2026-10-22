@@ -173,7 +173,10 @@ rule:
             kind: call_suffix
             not:
               has:
-                kind: annotated_lambda
+                any:
+                  - kind: annotated_lambda
+                  # `::f` can't take explicit type arguments.
+                  - kind: type_arguments
             has:
               kind: value_arguments
               has:
