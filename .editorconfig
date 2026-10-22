@@ -10,7 +10,7 @@ trim_trailing_whitespace = false
 [*.{yml,yaml}]
 indent_size = 2
 
-[*.md]
+[{*.md,LICENSE,LICENCE,UNLICENSE,COPYING,COPYRIGHT,NOTICE,PATENTS,AUTHORS,CONTRIBUTORS,MAINTAINERS,CREDITS,THANKS,README,CHANGELOG,CHANGES,HISTORY,NEWS,INSTALL,TODO}]
 end_of_line = unset
 indent_style = unset
 indent_size = unset
