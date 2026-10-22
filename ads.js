@@ -1,6 +1,7 @@
 const AD_ERROR = 'Commit messages and PR descriptions should not contain tool-injected advertising';
 const TOOL_AUTHOR_ERROR = 'The commit author indicates who is responsible for a given piece of code. Tools cannot be held accountable, so cannot be commit authors.';
 const BRANCH_AD_ERROR = 'Branch names should not contain tool-injected advertising';
+const COMMENT_AD_ERROR = 'PR comments should not contain tool-injected advertising';
 
 const TOOL_CO_AUTHOR_EMAILS = [
     // Claude Code
@@ -159,4 +160,19 @@ const adsInBranchNames = branches => branches
         isError: true
     }));
 
-module.exports = { isPRAd, isCommitAd, isToolAuthor, isToolBranch, adsInPRBody, adsInCommits, toolCommitAuthors, adsInBranchNames };
+// A bot's comment is the tool's own, not an ad injected into a person's.
+const adsInPRComments = comments => comments
+    .filter(comment => comment.user.type !== 'Bot')
+    // A review left only as line comments has an empty body.
+    .filter(comment => isPRAd(comment.body ?? ''))
+    .map(comment => ({
+        rule: 'no-ads-in-pr-comments',
+        file: null,
+        line: null,
+        commit: null,
+        branch: null,
+        output: `${comment.html_url}: error: ${COMMENT_AD_ERROR}`,
+        isError: true
+    }));
+
+module.exports = { isPRAd, isCommitAd, isToolAuthor, isToolBranch, adsInPRBody, adsInPRComments, adsInCommits, toolCommitAuthors, adsInBranchNames };

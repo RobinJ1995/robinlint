@@ -1,5 +1,6 @@
 const { spawnSync } = require('node:child_process');
 const Fs = require('node:fs');
+const { githubList } = require('./github');
 
 const FILE_DIFF_START_REGEX = /^diff --git /m;
 const HUNK_START_REGEX = /^@@ /m;
@@ -8,6 +9,8 @@ const HUNK_REGEX = /^@@ -\S+ \+(?<start>\d+)(?:,(?<count>\d+))? @@/gm;
 const NEW_FILE_PATH_REGEX = /^\+\+\+ b\/(?<path>.*?)\t?$/m;
 const ADDED_FILE_REGEX = /^--- \/dev\/null$/m;
 const ZERO_SHA_REGEX = /^0+$/;
+// pull_request_target checks out the base branch and issue_comment the default branch, so neither is the pull request.
+const PULL_REQUEST_EVENTS = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
 
 class GitRepo {
     constructor(cwd) {
@@ -182,7 +185,7 @@ class PullRequest {
     }
 
     static load = () => {
-        if (process.env.GITHUB_EVENT_NAME !== 'pull_request') {
+        if (!PULL_REQUEST_EVENTS.includes(process.env.GITHUB_EVENT_NAME)) {
             return null;
         }
 
@@ -216,6 +219,17 @@ class PullRequest {
     };
 
     branch = () => this.event.pull_request.head.ref;
+
+    // Conversation comments, review comments and review bodies.
+    comments = async () => {
+        const { repository, pull_request: { number } } = this.event;
+
+        return [
+            ...await githubList(`/repos/${repository.full_name}/issues/${number}/comments`),
+            ...await githubList(`/repos/${repository.full_name}/pulls/${number}/comments`),
+            ...await githubList(`/repos/${repository.full_name}/pulls/${number}/reviews`)
+        ];
+    };
 }
 
 class Push {

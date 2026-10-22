@@ -5,9 +5,15 @@ on:
   pull_request:
     # to trigger when PR description is updated
     types: [opened, synchronize, reopened, edited]
+  # to trigger when PR reviews and review comments are added
+  pull_request_review:
+    types: [submitted, edited]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 jobs:
   test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +27,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   action-fails-on-violations:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

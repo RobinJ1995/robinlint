@@ -1,7 +1,8 @@
 const { test } = require('node:test');
 const Assert = require('node:assert/strict');
-const { spawnSync } = require('node:child_process');
+const { spawnSync, execFile } = require('node:child_process');
 const Fs = require('node:fs');
+const Http = require('node:http');
 const Os = require('node:os');
 const Path = require('node:path');
 const Yaml = require('yaml');
@@ -393,25 +394,41 @@ const commitFiles = (repo, files, message = 'change') => {
     return gitIn(repo, ['rev-parse', 'HEAD']);
 };
 
-const lintEvent = ({ repo, eventName, event, rules }) => {
+// Serves each list a page at a time, like the GitHub API; any other list is empty.
+const mockGithubApi = lists => {
+    const server = Http.createServer((request, response) => {
+        const url = new URL(request.url, 'http://localhost');
+        const page = Number(url.searchParams.get('page'));
+        const perPage = Number(url.searchParams.get('per_page'));
+        const items = lists[url.pathname] ?? [];
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(items.slice((page - 1) * perPage, page * perPage)));
+    });
+
+    return new Promise(resolve => server.listen(0, () => resolve(server)));
+};
+
+const lintEvent = async ({ repo, eventName, event, rules, githubLists = {} }) => {
     const eventPath = Path.join(repo, '..', `${Path.basename(repo)}-event.json`);
     Fs.writeFileSync(eventPath, JSON.stringify(event));
+    const githubApi = await mockGithubApi(githubLists);
 
-    const lintProcess = spawnSync('node', [LINT_SCRIPT_PATH], {
+    const result = await new Promise(resolve => execFile('node', [LINT_SCRIPT_PATH], {
         cwd: repo,
-        encoding: 'utf8',
         env: {
             ...process.env,
             RULES: rules,
             GITHUB_EVENT_NAME: eventName,
-            GITHUB_EVENT_PATH: eventPath
+            GITHUB_EVENT_PATH: eventPath,
+            GITHUB_API_URL: `http://localhost:${githubApi.address().port}`
         }
-    });
+    }, (error, stdout, stderr) => resolve({
+        status: error?.code ?? 0,
+        output: stdout + stderr
+    })));
+    githubApi.close();
 
-    return {
-        status: lintProcess.status,
-        output: lintProcess.stdout + lintProcess.stderr
-    };
+    return result;
 };
 
 const BASE_FILES = {
@@ -430,7 +447,7 @@ function g(y) {
 `
 };
 
-test('only-new rules check only the lines a pull request adds', () => {
+test('only-new rules check only the lines a pull request adds', async () => {
     const repo = gibRepo({});
     const base = commitFiles(repo, BASE_FILES);
     gitIn(repo, ['switch', '-q', '-c', 'pr']);
@@ -438,11 +455,15 @@ test('only-new rules check only the lines a pull request adds', () => {
     gitIn(repo, ['switch', '-q', '-']);
     gitIn(repo, ['merge', '-q', '--no-ff', '-m', 'merge', 'pr']);
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'pull_request',
         event: {
+            repository: {
+                full_name: 'someone/something'
+            },
             pull_request: {
+                number: 1,
                 base: {
                     sha: base
                 },
@@ -458,17 +479,21 @@ test('only-new rules check only the lines a pull request adds', () => {
     Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
 });
 
-test('only-new rules check only the lines a pull request checked out at its head adds', () => {
+test('only-new rules check only the lines a pull request checked out at its head adds', async () => {
     const repo = gibRepo({});
     const base = commitFiles(repo, BASE_FILES);
     gitIn(repo, ['switch', '-q', '-c', 'pr']);
     const head = commitFiles(repo, PR_FILES);
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'pull_request',
         event: {
+            repository: {
+                full_name: 'someone/something'
+            },
             pull_request: {
+                number: 1,
                 base: {
                     sha: base
                 },
@@ -484,12 +509,12 @@ test('only-new rules check only the lines a pull request checked out at its head
     Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
 });
 
-test('only-new rules check only the lines a push adds', () => {
+test('only-new rules check only the lines a push adds', async () => {
     const repo = gibRepo({});
     const before = commitFiles(repo, BASE_FILES);
     const after = commitFiles(repo, PR_FILES);
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'push',
         event: {
@@ -503,14 +528,14 @@ test('only-new rules check only the lines a push adds', () => {
     Assert.deepEqual(findings(result.output), ['code.js:7 braces-javascript'], result.output);
 });
 
-test('only-new rules check only the lines a new branch adds', () => {
+test('only-new rules check only the lines a new branch adds', async () => {
     const repo = gibRepo({});
     const base = commitFiles(repo, BASE_FILES);
     gitIn(repo, ['update-ref', 'refs/remotes/origin/master', base]);
     gitIn(repo, ['switch', '-q', '-c', 'new']);
     const after = commitFiles(repo, PR_FILES);
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'push',
         event: {
@@ -575,7 +600,7 @@ c\r
 
 const AD_ERROR = 'Commit messages and PR descriptions should not contain tool-injected advertising';
 
-const lintPullRequest = ({ eventName = 'pull_request', title = 'fix thing', body = 'it was broken' }) => {
+const lintPullRequest = ({ eventName = 'pull_request', title = 'fix thing', body = 'it was broken', githubLists = {} }) => {
     const repo = gibRepo({});
     const base = commitFiles(repo, { 'a.txt': 'a\n' });
     gitIn(repo, ['switch', '-q', '-c', 'pr']);
@@ -584,8 +609,13 @@ const lintPullRequest = ({ eventName = 'pull_request', title = 'fix thing', body
     return lintEvent({
         repo,
         eventName,
+        githubLists,
         event: {
+            repository: {
+                full_name: 'someone/something'
+            },
             pull_request: {
+                number: 1,
                 title,
                 body,
                 base: {
@@ -601,8 +631,8 @@ const lintPullRequest = ({ eventName = 'pull_request', title = 'fix thing', body
     });
 };
 
-test('pull requests without ads pass', () => {
-    const result = lintPullRequest({
+test('pull requests without ads pass', async () => {
+    const result = await lintPullRequest({
         body: `Summaries are generated by Gemini now, see \`claude/stripe-1-schema\` and \`source_session_id\`.
 
 A Claude Code on the web container has Docker installed (Codex P2 on #34).`
@@ -610,8 +640,8 @@ A Claude Code on the web container has Docker installed (Codex P2 on #34).`
     Assert.equal(result.status, 0, result.output);
 });
 
-test('a "Generated with Claude Code" footer in a PR description fails', () => {
-    const result = lintPullRequest({
+test('a "Generated with Claude Code" footer in a PR description fails', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)`
@@ -620,8 +650,8 @@ test('a "Generated with Claude Code" footer in a PR description fails', () => {
     Assert.ok(result.output.includes(`PR description: error: ${AD_ERROR}`), result.output);
 });
 
-test('a "Generated by Claude Code" session footer in a PR description fails', () => {
-    const result = lintPullRequest({
+test('a "Generated by Claude Code" session footer in a PR description fails', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 
 ---
@@ -631,8 +661,8 @@ _Generated by [Claude Code](https://claude.ai/code/session_01ABC)_`
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('a session link in a PR description fails', () => {
-    const result = lintPullRequest({
+test('a session link in a PR description fails', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 
 https://claude.ai/code/session_01ABC`
@@ -641,8 +671,8 @@ https://claude.ai/code/session_01ABC`
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('a Claude-Session trailer in a PR description fails', () => {
-    const result = lintPullRequest({
+test('a Claude-Session trailer in a PR description fails', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 
 Claude-Session: https://claude.ai/code/session_01ABC`
@@ -651,8 +681,8 @@ Claude-Session: https://claude.ai/code/session_01ABC`
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('a Codex task link in a PR description fails', () => {
-    const result = lintPullRequest({
+test('a Codex task link in a PR description fails', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 ------
 [Codex Task](https://chatgpt.com/codex/cloud/tasks/task_e_123)`
@@ -661,8 +691,8 @@ test('a Codex task link in a PR description fails', () => {
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('Copilot coding agent tips in a PR description fail', () => {
-    const result = lintPullRequest({
+test('Copilot coding agent tips in a PR description fail', async () => {
+    const result = await lintPullRequest({
         body: `Fixes it.
 
 <!-- START COPILOT CODING AGENT TIPS -->`
@@ -671,16 +701,163 @@ test('Copilot coding agent tips in a PR description fail', () => {
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('a tool as Co-Authored-By in a PR description fails', () => {
-    const result = lintPullRequest({ body: 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>' });
+test('a tool as Co-Authored-By in a PR description fails', async () => {
+    const result = await lintPullRequest({ body: 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>' });
     Assert.equal(result.status, 1, result.output);
     Assert.ok(result.output.includes(AD_ERROR), result.output);
 });
 
-test('pull_request_target events are not checked as a pull request', () => {
-    const result = lintPullRequest({
+test('pull_request_target events are not checked as a pull request', async () => {
+    const result = await lintPullRequest({
         eventName: 'pull_request_target',
         body: '🤖 Generated with [Claude Code](https://claude.com/claude-code)'
+    });
+    Assert.equal(result.status, 0, result.output);
+});
+
+const COMMENT_AD_ERROR = 'PR comments should not contain tool-injected advertising';
+const CONVERSATION_COMMENTS = '/repos/someone/something/issues/1/comments';
+const REVIEW_COMMENTS = '/repos/someone/something/pulls/1/comments';
+const REVIEWS = '/repos/someone/something/pulls/1/reviews';
+const COMMENT_URL = 'https://github.com/someone/something/pull/1#issuecomment-1';
+const AD_COMMENT = {
+    user: {
+        login: 'someone',
+        type: 'User'
+    },
+    html_url: COMMENT_URL,
+    body: `Fixed.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_`
+};
+
+test('pull request comments without ads pass', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [CONVERSATION_COMMENTS]: [
+                {
+                    ...AD_COMMENT,
+                    body: 'Generated by the script in tools/.'
+                }
+            ]
+        }
+    });
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('an ad in a pull request conversation comment fails', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [CONVERSATION_COMMENTS]: [AD_COMMENT]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`${COMMENT_URL}: error: ${COMMENT_AD_ERROR}`), result.output);
+});
+
+test('an ad in a pull request review comment fails', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [REVIEW_COMMENTS]: [AD_COMMENT]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`${COMMENT_URL}: error: ${COMMENT_AD_ERROR}`), result.output);
+});
+
+test('an ad in a pull request review fails', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [REVIEWS]: [
+                {
+                    ...AD_COMMENT,
+                    body: `Looks good.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+                }
+            ]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(`${COMMENT_URL}: error: ${COMMENT_AD_ERROR}`), result.output);
+});
+
+test('a pull request review with only line comments passes', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [REVIEWS]: [
+                {
+                    ...AD_COMMENT,
+                    body: null
+                }
+            ]
+        }
+    });
+    Assert.equal(result.status, 0, result.output);
+});
+
+test("bots' pull request comments are not checked", async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [CONVERSATION_COMMENTS]: [
+                {
+                    ...AD_COMMENT,
+                    user: {
+                        login: 'claude[bot]',
+                        type: 'Bot'
+                    }
+                }
+            ]
+        }
+    });
+    Assert.equal(result.status, 0, result.output);
+});
+
+test('every page of pull request comments is checked', async () => {
+    const result = await lintPullRequest({
+        githubLists: {
+            [REVIEW_COMMENTS]: [
+                ...new Array(100).fill({
+                    ...AD_COMMENT,
+                    body: 'Looks good.'
+                }),
+                AD_COMMENT
+            ]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(COMMENT_AD_ERROR), result.output);
+});
+
+test('pull_request_review events are checked as their pull request', async () => {
+    const result = await lintPullRequest({
+        eventName: 'pull_request_review',
+        githubLists: {
+            [REVIEWS]: [AD_COMMENT]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(COMMENT_AD_ERROR), result.output);
+});
+
+test('pull_request_review_comment events are checked as their pull request', async () => {
+    const result = await lintPullRequest({
+        eventName: 'pull_request_review_comment',
+        githubLists: {
+            [REVIEW_COMMENTS]: [AD_COMMENT]
+        }
+    });
+    Assert.equal(result.status, 1, result.output);
+    Assert.ok(result.output.includes(COMMENT_AD_ERROR), result.output);
+});
+
+test('issue_comment events are not checked as a pull request', async () => {
+    const result = await lintPullRequest({
+        eventName: 'issue_comment',
+        githubLists: {
+            [CONVERSATION_COMMENTS]: [AD_COMMENT]
+        }
     });
     Assert.equal(result.status, 0, result.output);
 });
@@ -730,18 +907,22 @@ test('no-ads-in-commits: true checks every commit', () => {
     Assert.ok(result.output.includes(`commit ${sha.slice(0, 7)} message: error: ${AD_ERROR}`), result.output);
 });
 
-test('an ad in a pull request commit fails', () => {
+test('an ad in a pull request commit fails', async () => {
     const repo = gibRepo({});
     const base = commitFiles(repo, { 'a.txt': 'a\n' });
     gitIn(repo, ['switch', '-q', '-c', 'pr']);
     commitFiles(repo, { 'b.txt': 'b\n' }, AD_COMMIT_MESSAGE);
     const head = commitFiles(repo, { 'c.txt': 'c\n' });
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'pull_request',
         event: {
+            repository: {
+                full_name: 'someone/something'
+            },
             pull_request: {
+                number: 1,
                 base: {
                     sha: base
                 },
@@ -839,17 +1020,21 @@ test('no-ads-in-branch-names: true checks every branch', () => {
     Assert.ok(result.output.includes(`branch codex/fix-thing: error: ${BRANCH_AD_ERROR}`), result.output);
 });
 
-test('a tool name for a pull request branch fails', () => {
+test('a tool name for a pull request branch fails', async () => {
     const repo = gibRepo({});
     const base = commitFiles(repo, { 'a.txt': 'a\n' });
     gitIn(repo, ['switch', '-q', '-c', 'pr']);
     const head = commitFiles(repo, { 'b.txt': 'b\n' });
 
-    const result = lintEvent({
+    const result = await lintEvent({
         repo,
         eventName: 'pull_request',
         event: {
+            repository: {
+                full_name: 'someone/something'
+            },
             pull_request: {
+                number: 1,
                 base: {
                     sha: base
                 },
