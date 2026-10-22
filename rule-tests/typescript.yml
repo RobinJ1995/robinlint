@@ -584,6 +584,8 @@ valid:
   - 'a.map((x) => new Foo(x));'
   - 'a.map(({ value }) => trim(value));'
   - 'paths.map((p) => import(p));'
+  - "['1', '2'].map((x) => parseInt(x));"
+  - 'Promise.all(urls.map((url) => fetch(url)));'
 invalid:
   - 'a.map(x => f(x));'
   - 'a.map((x) => f(x));'
