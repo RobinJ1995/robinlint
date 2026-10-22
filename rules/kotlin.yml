@@ -197,8 +197,16 @@ rule:
             matches: only-child
             pattern: $X
     - not:
-        has:
-          kind: lambda_parameters
+        any:
+          - has:
+              kind: lambda_parameters
+          # `it` may belong to an enclosing lambda, e.g. `xs.forEach { launch { send(it) } }`.
+          - inside:
+              stopBy: end
+              kind: lambda_literal
+              not:
+                has:
+                  kind: lambda_parameters
       has:
         kind: statements
         has:

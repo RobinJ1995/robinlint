@@ -623,6 +623,8 @@ valid:
   - 'a.map { x -> f(x).g() }'
   - 'a.map { f(it).g() }'
   - 'a.sortedWith { a, b -> f(b).compareTo(f(a)) }'
+  - 'xs.forEach { scope.launch { send(it) } }'
+  - 'xs.map { runCatching { parse(it) } }'
   - 'json.map { decode<User>(it) }'
   - 'xs.map { Item(name = it) }'
   - 'xs.map { s: String -> parse(s) }'
