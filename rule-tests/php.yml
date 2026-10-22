@@ -430,6 +430,14 @@ valid:
     if ($a):
         b();
     endif;
+  - |
+    <?php if ($user) { ?>
+        <p>Hello, <?= $user->name ?></p>
+    <?php } elseif ($guest) { ?>
+        <p>Hello, guest</p>
+    <?php } else { ?>
+        <a href="/login">Log in</a>
+    <?php } ?>
 invalid:
   - <?php if ($a) { b(); }
   - <?php if ($a) {}
