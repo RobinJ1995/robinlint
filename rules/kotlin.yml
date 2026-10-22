@@ -56,6 +56,7 @@ utils:
             matches: exiting-chain
 rule:
   kind: if_expression
+  matches: kotlin-statement-if
   inside:
     kind: statements
   follows:
@@ -173,7 +174,10 @@ rule:
             kind: call_suffix
             not:
               has:
-                kind: annotated_lambda
+                any:
+                  - kind: annotated_lambda
+                  # `::f` can't take explicit type arguments.
+                  - kind: type_arguments
             has:
               kind: value_arguments
               has:
@@ -194,8 +198,16 @@ rule:
             matches: only-child
             pattern: $X
     - not:
-        has:
-          kind: lambda_parameters
+        any:
+          - has:
+              kind: lambda_parameters
+          # `it` may belong to an enclosing lambda, e.g. `xs.forEach { launch { send(it) } }`.
+          - inside:
+              stopBy: end
+              kind: lambda_literal
+              not:
+                has:
+                  kind: lambda_parameters
       has:
         kind: statements
         has:

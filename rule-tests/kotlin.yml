@@ -25,6 +25,73 @@ valid:
         return if (a) 1 else 2
     }
   - fun f() = if (a) 1 else 2
+  - |
+    fun f(state: State): Color {
+        val color = when (state) {
+            State.Error -> {
+                log(state)
+                if (state.critical) Color.Red else Color.Orange
+            }
+            else -> Color.Gray
+        }
+        return color
+    }
+  - |
+    fun f(s: String) {
+        val n = try {
+            if (s.isEmpty()) 0 else s.toInt()
+        } catch (e: NumberFormatException) {
+            if (strict) throw e else -1
+        }
+    }
+  - |
+    fun f() {
+        val x = if (a) {
+            prepare()
+            if (b) 1 else 2
+        } else {
+            3
+        }
+    }
+  - |
+    fun f(user: User?) {
+        val name = user?.let { if (it.nickname.isNotEmpty()) it.nickname else it.name } ?: return
+        val label = "${if (enabled) "on" else "off"} mode"
+        val size = items.sumOf { item -> if (item.visible) item.size else 0 }
+        button.text = if (loading) "..." else "Go"
+        total += if (a) 1 else 0
+    }
+  - |
+    fun sign(x: Int) = when (x) {
+        0 -> "zero"
+        else -> if (x > 0) "positive" else "negative"
+    }
+  - |
+    fun f() = run {
+        prepare()
+        if (a) 1 else 2
+    }
+  - |
+    val flow = source.map { value ->
+        log(value)
+        // clamp
+        if (value > 0) value else 0
+    }
+  - |
+    fun f(): List<Int> = xs.map {
+        when (it) {
+            null -> {
+                log()
+                if (strict) -1 else 0
+            }
+            else -> it
+        }
+    }
+  - |
+    class A {
+        val name: String
+            get() = if (a) "x" else "y"
+    }
 invalid:
   - |
     fun f() {
@@ -55,6 +122,36 @@ invalid:
     fun f() {
         xs.forEach {
             if (it > 0) println(it)
+        }
+    }
+  - |
+    fun f() {
+        when (x) {
+            1 -> {
+                if (a) b()
+            }
+            else -> c()
+        }
+    }
+  - |
+    fun f() {
+        try {
+            if (a) b() else c()
+        } catch (e: Exception) {
+            log(e)
+        }
+    }
+  - |
+    fun f() {
+        xs.map {
+            if (it < 0) log(it) else count++
+            it * 2
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            if (b) c() else d()
         }
     }
 ---
@@ -125,6 +222,64 @@ valid:
             y = 1
         }
         return 0
+    }
+  - |
+    fun f() {
+        val ys = xs.map {
+            if (it == null) return@map 0
+            if (it > 0) it else -it
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            items.forEach {
+                if (it.done) return
+            }
+        }
+        if (b) {
+            x()
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            x()
+        } else {
+            return
+        }
+        if (b) {
+            y()
+        }
+    }
+  - |
+    fun f(user: User?) {
+        val name = user?.name ?: return
+        if (name.isEmpty()) {
+            log()
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            if (b) {
+                return
+            } else {
+                x()
+            }
+        }
+        if (c) {
+            y()
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            return
+        }
+        when (x) {
+            1 -> if (b) y()
+        }
     }
 invalid:
   - |
@@ -202,6 +357,38 @@ invalid:
             x()
         }
     }
+  - |
+    fun f(x: Int?) {
+        if (x == null) return
+        if (x > 0) {
+            log(x)
+        }
+    }
+  - |
+    fun f() {
+        when (state) {
+            State.Idle -> {
+                if (busy) {
+                    return
+                }
+                if (ready) {
+                    start()
+                }
+            }
+            else -> stop()
+        }
+    }
+  - |
+    fun f(x: Int) {
+        if (x < 0) {
+            throw IllegalArgumentException("negative")
+        }
+        if (x > max) {
+            log(x)
+        } else {
+            use(x)
+        }
+    }
 ---
 id: braces-placement-kotlin
 valid:
@@ -230,6 +417,56 @@ valid:
   - |
     fun f() {
         val x = if (a) { 1 } else { 2 }
+    }
+  - |
+    fun f() {
+        if (xs.any { it > 0 }) {
+            b()
+        }
+        if (a) { // why
+            b()
+        } else { // why not
+            c()
+        } // end
+        if (a) {
+            // nothing to do
+        }
+    }
+  - |
+    fun f() {
+        if (
+            a &&
+            b
+        ) {
+            xs.forEach {
+                c(it)
+            }
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            println("{ } }")
+        }
+    }
+  - |
+    fun f() {
+        val ys = xs.map { if (it > 0) { it } else { 0 } }
+        val y = when (x) {
+            1 -> {
+                log()
+                if (a) { 1 } else { 2 }
+            }
+            else -> 0
+        }
+    }
+  - |
+    fun f() {
+        val x = try {
+            if (a) { 1 } else { 2 }
+        } catch (e: Exception) {
+            0
+        }
     }
 invalid:
   - |
@@ -266,6 +503,30 @@ invalid:
         if (a) {
             b()
         } else { c() }
+    }
+  - |
+    fun f() {
+        if (a) {
+            b()
+        } else if (c)
+        {
+            d()
+        }
+    }
+  - |
+    fun f() {
+        if (a &&
+            b)
+        {
+            c()
+        }
+    }
+  - |
+    fun f() {
+        xs.forEach {
+            if (it > 0) { log(it) }
+            count++
+        }
     }
 ---
 id: no-else-after-exit-kotlin
@@ -308,6 +569,56 @@ valid:
 
         return if (b) 1 else x
     }
+  - |
+    fun f(s: String): Int? {
+        val n = try {
+            if (s.isBlank()) return null else s.toInt()
+        } catch (e: NumberFormatException) {
+            -1
+        }
+        return n
+    }
+  - |
+    fun f(x: Int): String {
+        return when (x) {
+            0 -> "zero"
+            else -> if (x < 0) throw IllegalArgumentException() else "positive"
+        }
+    }
+  - |
+    fun f(): Int {
+        if (a) {
+            return 1
+        } else if (b) {
+            log()
+        } else if (c) {
+            return 2
+        } else {
+            x()
+        }
+        return 0
+    }
+  - |
+    fun f() {
+        if (a) {
+            if (b) return
+        } else {
+            x()
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            x()
+        } else {
+            return
+        }
+    }
+  - |
+    fun f(x: Int?): Int? {
+        val y = x?.let { if (it < 0) return null else it * 2 }
+        return y
+    }
 invalid:
   - |
     fun f(): Int {
@@ -337,6 +648,41 @@ invalid:
             }
         }
     }
+  - |
+    fun f() {
+        for (x in xs) {
+            when (x.type) {
+                Type.A -> {
+                    if (x.skip) {
+                        continue
+                    } else {
+                        handle(x)
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+  - |
+    fun f() {
+        if (a) {
+            x()
+            return // done
+        } else {
+            y()
+        }
+    }
+  - |
+    fun f() {
+        xs.forEach {
+            if (it.skip) {
+                return@forEach
+            } else {
+                handle(it)
+            }
+            count++
+        }
+    }
 ---
 id: function-reference-kotlin
 valid:
@@ -350,6 +696,26 @@ valid:
   - 'a.map { x -> f(x).g() }'
   - 'a.map { f(it).g() }'
   - 'a.sortedWith { a, b -> f(b).compareTo(f(a)) }'
+  - 'xs.forEach { scope.launch { send(it) } }'
+  - 'xs.map { runCatching { parse(it) } }'
+  - 'json.map { decode<User>(it) }'
+  - 'xs.map { Item(name = it) }'
+  - 'xs.map { s: String -> parse(s) }'
+  - 'entries.map { (key, _) -> encode(key) }'
+  - 'xs.forEach { x -> ys.forEach { add(x) } }'
+  - 'xs.map { f(it.name) }'
+  - 'view.apply { register(this) }'
+  - |
+    xs.forEach {
+        log(it)
+        handle(it)
+    }
 invalid:
   - 'a.map { x -> f(x) }'
   - 'a.map { f(it) }'
+  - 'xs.forEach { x -> ys.map { pair(it) } }'
+  - 'xs.map { it -> f(it) }'
+  - |
+    val users = rows
+        .filter { it.isNotBlank() }
+        .map { row -> User(row) }
