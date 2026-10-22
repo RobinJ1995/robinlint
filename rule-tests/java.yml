@@ -18,6 +18,76 @@ valid:
             return a ? 1 : 2;
         }
     }
+  - |
+    class A {
+        void f() {
+            for (int i = 0; i < n; i++) x(i);
+            while (a) b();
+        }
+    }
+  - |
+    class A {
+        void f() {
+            list.forEach(x -> {
+                if (x == null) {
+                    return;
+                }
+                g(x);
+            });
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) /* see #12 */ {
+                b();
+            } else /* fallback */ if (c) {
+                d();
+            }
+        }
+    }
+  - |
+    class A {
+        int f(Kind k) {
+            return switch (k) {
+                case A -> {
+                    if (a) {
+                        yield 1;
+                    }
+                    yield 2;
+                }
+                default -> a ? 3 : 4;
+            };
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                b();
+            } else {
+                if (c) {
+                    d();
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            try {
+                if (a) {
+                    b();
+                }
+            } catch (IOException e) {
+                if (c) {
+                    d();
+                }
+            } finally {
+                close();
+            }
+        }
+    }
 invalid:
   - |
     class A {
@@ -46,6 +116,32 @@ invalid:
             if (a) {
                 b();
             } else if (c) d();
+        }
+    }
+  - |
+    class A {
+        void f() {
+            list.forEach(x -> {
+                if (x == null) return;
+                g(x);
+            });
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                if (b) c();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a)
+                for (X x : xs) {
+                    g(x);
+                }
         }
     }
 ---
@@ -168,6 +264,93 @@ valid:
             return 0;
         }
     }
+  - |
+    class A {
+        int f(boolean a, Object o) {
+            if (a) {
+                return 0;
+            }
+            if (!(o instanceof List<?> list)) {
+                return 0;
+            }
+
+            return list.size();
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                try {
+                    return load();
+                } catch (IOException e) {
+                    log(e);
+                }
+            }
+            if (b) {
+                x = 1;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        int f(int k) {
+            switch (k) {
+                case 1:
+                    if (a) {
+                        return 1;
+                    }
+                case 2:
+                    if (b) {
+                        x = 1;
+                    }
+                    break;
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                list.forEach(x -> {
+                    return;
+                });
+            }
+            if (b) {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                for (X x : xs) {
+                    if (x.done()) {
+                        break;
+                    }
+                }
+            }
+            if (b) {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                return;
+            }
+            log();
+            // comment
+            if (b) {
+                y();
+            }
+        }
+    }
 invalid:
   - |
     class A {
@@ -257,6 +440,49 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        int f(Object o) {
+            if (!(o instanceof String s)) {
+                return 0;
+            }
+            if (s.isEmpty()) {
+                return 1;
+            }
+            return s.length();
+        }
+    }
+  - |
+    class A {
+        void f() {
+            outer:
+            for (X x : xs) {
+                for (Y y : x.ys()) {
+                    if (y == null) {
+                        continue outer;
+                    }
+                    if (y.ok()) {
+                        g(y);
+                    } else {
+                        h(y);
+                    }
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            list.forEach(x -> {
+                if (x == null) {
+                    return;
+                }
+                if (x.ok()) {
+                    g(x);
+                }
+            });
+        }
+    }
 ---
 id: braces-placement-java
 valid:
@@ -289,6 +515,56 @@ valid:
             }
         }
     }
+  - |
+    class A {
+        void f() {
+            if (
+                a && b
+            ) {
+                c();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (list.stream().anyMatch(x -> {
+                return x.ok();
+            })) {
+                b();
+            }
+            if (Arrays.asList(new String[] {"a", "b"}).contains(x)) {
+                c();
+            }
+        }
+    }
+  - |
+    class A
+    {
+        void f()
+        {
+            for (;;)
+            {
+                try { g(); } catch (Exception e) { }
+                if (a) {
+                    list.forEach(x -> { h(x); });
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) /* see #12 */ {
+                b(); // or else
+            }
+            // otherwise
+            else {
+                c();
+            }
+        }
+    }
+  - "class A {\r\n    void f() {\r\n        if (a) {\r\n            b();\r\n        } else {\r\n            c();\r\n        }\r\n    }\r\n}\r\n"
 invalid:
   - |
     class A {
@@ -350,6 +626,25 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                b();
+            } else if (c)
+            {
+                d();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            list.forEach(x -> { if (x.ok()) { g(x); } });
+        }
+    }
+  - "class A {\r\n    void f() {\r\n        if (a)\r\n        {\r\n            b();\r\n        }\r\n    }\r\n}\r\n"
+  - "class A {\r\n    void f() {\r\n        if (a) {\r\n            b();\r\n        }\r\n        else\r\n        {\r\n            c();\r\n        }\r\n    }\r\n}\r\n"
 ---
 id: no-else-after-exit-java
 valid:
@@ -381,6 +676,87 @@ valid:
             if (a) {
                 return a;
             } else if (b) {
+                x();
+            } else {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                x();
+            } else if (b) {
+                return b;
+            } else {
+                y();
+            }
+            return c;
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                return a;
+            } else if (b) {
+                x();
+            } else if (c) {
+                return c;
+            } else {
+                y();
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        int f() {
+            if (a) {
+                try {
+                    return load();
+                } catch (IOException e) {
+                    log(e);
+                }
+            } else {
+                y();
+            }
+            return 0;
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                list.forEach(x -> {
+                    return;
+                });
+            } else {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        void f(int k) {
+            if (a) {
+                switch (k) {
+                    case 1:
+                        break;
+                }
+            } else {
+                y();
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                if (b) {
+                    return;
+                }
                 x();
             } else {
                 y();
@@ -422,6 +798,35 @@ invalid:
             }
         }
     }
+  - |
+    class A {
+        void f() {
+            outer:
+            for (X x : xs) {
+                for (Y y : x.ys()) {
+                    if (y == null) {
+                        break outer;
+                    } else {
+                        g(y);
+                    }
+                }
+            }
+        }
+    }
+  - |
+    class A {
+        void f() {
+            if (a) {
+                x();
+            } else {
+                if (b) {
+                    throw new IllegalStateException(); // unreachable
+                } else {
+                    y();
+                }
+            }
+        }
+    }
 ---
 id: function-reference-java
 valid:
@@ -433,6 +838,17 @@ valid:
   - 'a.forEach((x, y) -> f(y));'
   - 'a.forEach(x -> f(x).g());'
   - 'a.sort((a, b) -> f(b).compareTo(f(a)));'
+  - 'a.filter(x -> !f(x));'
+  - 'a.map(x -> f(g(x)));'
+  - 'a.map(x -> (int) f(x));'
+  - 'a.map(x -> f(x) + 1);'
+  - 'a.forEach(x -> f(y));'
+  - 'a.sort((a, b) -> compare(b, a));'
+  - 'a.forEach((k, v) -> put(k, v, true));'
+  - 'a.map(x -> super.f(x));'
 invalid:
   - 'a.forEach(x -> f(x));'
   - 'a.forEach((x) -> f(x));'
+  - 'a.sort((a, b) -> compare(a, b));'
+  - 'a.map(x -> this.f(x));'
+  - 'a.map(x -> b.stream().map(y -> f(y)));'
