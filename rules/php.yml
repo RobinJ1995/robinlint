@@ -74,6 +74,11 @@ severity: error
 message: if statement braces go on the correct line.
 rule:
   kind: compound_statement
+  # Templates leave PHP inside the block: `{ ?>` ... `<?php }`.
+  not:
+    has:
+      kind: php_end_tag
+      stopBy: end
   any:
     - regex: '^\{[ \t]*[^\s/#]|\S[ \t]*\}$'
       inside:
