@@ -372,6 +372,15 @@ invalid:
             x();
         }
     }
+  - |
+    <?php
+    if (!isset($_GET['id'])) {
+        http_response_code(400);
+        exit;
+    }
+    if ($_GET['id'] === 'all') {
+        $all = true;
+    }
 ---
 id: braces-placement-php
 valid:
@@ -676,6 +685,14 @@ invalid:
         } else {
             x();
         }
+    }
+  - |
+    <?php
+    if (!$ok) {
+        echo 'fail';
+        exit(1);
+    } else {
+        echo 'ok';
     }
 ---
 id: function-reference-php
