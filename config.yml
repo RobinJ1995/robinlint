@@ -16,6 +16,7 @@ rules:
   no-else-after-exit: true
   function-reference: true
   no-single-parameter-brackets: true
+  named-function-parameters: true
   no-ads-in-prs: only-new
   no-ads-in-commits: only-new
   no-tools-as-commit-author: only-new

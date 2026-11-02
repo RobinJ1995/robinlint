@@ -333,6 +333,86 @@ test('feature files still get line ending and final newline checks', () => {
     Assert.match(result.output, /login\.feature:0:0: error: wrong line endings or no final newline/);
 });
 
+const namedFunctionParametersFindings = files => {
+    const result = lintRepo(gibRepo(files), '', 'named-function-parameters: true\n');
+
+    return findings(result.output).filter(finding => finding.endsWith(' named-function-parameters-kotlin'));
+};
+
+test('kotlin calls to varargs and function types declared anywhere in the repo may be positional', () => {
+    Assert.deepEqual(namedFunctionParametersFindings({
+        'src/Log.kt': `fun log(tag: String, vararg parts: Any) {}
+
+class Tags(vararg val tags: String)
+
+class Labels {
+    constructor(vararg labels: String)
+}
+
+fun <T> Table.withRows(vararg rows: T, block: () -> Unit) {}
+
+class Listener(val onEvent: (Int, Int, Int, Int) -> Unit)
+
+class Handler {
+    var onError: ((Int, Int, Int, Int) -> Unit)? = null
+}
+`,
+        'src/Use.kt': `fun use(table: Table, listener: Listener, handler: Handler) {
+    log("tag", 1, 2, 3)
+    Tags("a", "b", "c", "d")
+    Labels("a", "b", "c", "d")
+    table.withRows(1, 2, 3) {
+        check()
+    }
+    listener.onEvent(1, 2, 3, 4)
+    handler.onError?.invoke(1, 2, 3, 4)
+}
+`,
+        'src/Local.kt': `fun local(cb: (Int, Int, Int, Int) -> Unit, done: suspend (Int, Int, Int, Int) -> Unit) {
+    cb(1, 2, 3, 4)
+    val add: (Int, Int, Int, Int) -> Int = { a, b, c, d -> a + b + c + d }
+    add(1, 2, 3, 4)
+    val sum = { a: Int, b: Int, c: Int, d: Int -> a + b + c + d }
+    sum(1, 2, 3, 4)
+    val anonymous = fun(a: Int, b: Int, c: Int, d: Int) = a + b + c + d
+    anonymous(1, 2, 3, 4)
+    val reference = ::total
+    reference(1, 2, 3, 4)
+}
+`
+    }), []);
+});
+
+test('kotlin calls to other functions still need named arguments next to vararg and function type declarations', () => {
+    Assert.deepEqual(namedFunctionParametersFindings({
+        'src/Log.kt': `fun log(parts: List<String>, vararg tags: String) {}
+
+fun run(cb: (Int) -> Unit) {
+    save(1, 2, 3, 4)
+}
+`,
+        'src/Use.kt': `fun use() {
+    print(1, 2, 3, 4)
+    Item(1, 2, 3, 4)
+    parts.run(1, 2, 3, 4)
+}
+`
+    }), [
+        'src/Log.kt:4 named-function-parameters-kotlin',
+        'src/Use.kt:2 named-function-parameters-kotlin',
+        'src/Use.kt:3 named-function-parameters-kotlin',
+        'src/Use.kt:4 named-function-parameters-kotlin'
+    ]);
+});
+
+test('kotlin vararg declarations exempt nothing in other languages', () => {
+    const result = lintRepo(gibRepo({
+        'Log.kt': 'fun save(vararg parts: Any) {}\n',
+        'save.js': 'save(1, 2, 3, 4);\n'
+    }));
+    Assert.equal(result.status, 0, result.output);
+});
+
 test('rules can be turned off in the config', () => {
     const content = sample('javascript', 'bad.js');
     const result = lintRepo(gibRepo({ 'bad.js': content }), '', 'braces: false\n');

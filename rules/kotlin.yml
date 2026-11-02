@@ -214,3 +214,138 @@ rule:
           stopBy: end
           kind: value_argument
           regex: ^it$
+---
+id: named-function-parameters-kotlin
+language: kotlin
+severity: error
+message: name the arguments of calls with more than 3 parameters.
+# lint.js also exempts calls to vararg and function-typed declarations.
+utils:
+  named-argument:
+    kind: value_argument
+    has:
+      regex: '^=$'
+  nth-argument-4:
+    nthChild:
+      position: 4
+      ofRule:
+        kind: value_argument
+  nth-argument-3:
+    nthChild:
+      position: 3
+      ofRule:
+        kind: value_argument
+  # $NAME: `f` in `f(...)`, `a.f(...)`, `a?.f(...)`.
+  callee:
+    nthChild: 1
+    any:
+      - kind: simple_identifier
+        pattern: $NAME
+      - kind: navigation_expression
+        has:
+          kind: navigation_suffix
+          has:
+            kind: simple_identifier
+            pattern: $NAME
+  # Varargs, and `invoke` (mostly function types).
+  unnameable-name:
+    regex: >-
+      ^(listOf|listOfNotNull|mutableListOf|arrayListOf|setOf|setOfNotNull|mutableSetOf|hashSetOf|linkedSetOf|sortedSetOf|mapOf|mutableMapOf|hashMapOf|linkedMapOf|sortedMapOf|arrayOf|u?(int|long|short|byte)ArrayOf|(char|float|double|boolean)ArrayOf|sequenceOf|flowOf|persistent\w*Of|mutableState(List|Map)Of|maxOf|minOf|compareBy|compareByDescending|compareValuesBy|awaitAll|joinAll|merge|combine|remember|rememberSaveable|LaunchedEffect|DisposableEffect|produceState|key|CompositionLocalProvider|(linear|horizontal|vertical|radial|sweep)Gradient|Path|of|asList|hash|join|concat|format|printf|addAll|allOf|anyOf|assertAll|arguments|tuple|row|withData|trace|debug|info|warn|warning|error|contains\w*|doesNotContain\w*|should(Not)?Contain\w*|is(Any|None|One)Of|isIn|isNotIn|hasItems|startsWith|endsWith|thenReturn|thenThrow|doReturn|verifyNoMoreInteractions|verifyNoInteractions|reset|clearMocks|confirmVerified|mockkObject|mockkStatic|unmockkObject|unmockkStatic|invoke)$
+  unnameable-callee:
+    nthChild: 1
+    any:
+      - kind: simple_identifier
+        matches: unnameable-name
+      - kind: navigation_expression
+        any:
+          - has:
+              kind: navigation_suffix
+              has:
+                kind: simple_identifier
+                matches: unnameable-name
+          - regex: '^(Timber\b|Paths\s*\.\s*get$)'
+  # Java constructors and static calls; Java has no named arguments.
+  java-package:
+    regex: '^(java|javax|jakarta|android|org\.(joda|apache|eclipse|junit|mockito|assertj|hamcrest|slf4j|springframework)|io\.(netty|reactivex)|com\.google\.common|com\.fasterxml)\s*\.'
+  java-callee:
+    nthChild: 1
+    any:
+      - kind: navigation_expression
+        matches: java-package
+      - any:
+          - kind: simple_identifier
+            matches: java-class
+          - kind: navigation_expression
+            has:
+              nthChild: 1
+              kind: simple_identifier
+              matches: java-class
+  java-class:
+    any:
+      - regex: ^(System|Math|StrictMath|Thread|ThreadGroup|Runtime|Process|ProcessBuilder|Integer|Character|Objects|ClassLoader)$
+      - all:
+          - pattern: $CLASS
+          - inside:
+              stopBy: end
+              kind: source_file
+              has:
+                kind: import_list
+                has:
+                  kind: import_header
+                  has:
+                    kind: identifier
+                    matches: java-package
+                  any:
+                    - has:
+                        kind: import_alias
+                        has:
+                          kind: type_identifier
+                          pattern: $CLASS
+                    - not:
+                        has:
+                          kind: import_alias
+                      has:
+                        kind: identifier
+                        has:
+                          kind: simple_identifier
+                          nthChild:
+                            position: 1
+                            reverse: true
+                          pattern: $CLASS
+rule:
+  kind: value_arguments
+  all:
+    - has:
+        kind: value_argument
+        not:
+          matches: named-argument
+    - not:
+        has:
+          kind: value_argument
+          has:
+            kind: spread_expression
+    # More than 3, counting a trailing lambda.
+    - any:
+        - has:
+            matches: nth-argument-4
+        - has:
+            matches: nth-argument-3
+          precedes:
+            kind: annotated_lambda
+    - any:
+        - inside:
+            kind: call_suffix
+            inside:
+              kind: call_expression
+              all:
+                - has:
+                    matches: callee
+                - not:
+                    has:
+                      matches: unnameable-callee
+                - not:
+                    has:
+                      matches: java-callee
+        - inside:
+            kind: constructor_delegation_call
+            regex: ^this\b

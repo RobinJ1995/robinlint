@@ -26,6 +26,10 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
     } else {
         log("not ok")
     }
+    val copy = Item(gate = gate, ok = ok, parent = null, depth = 0)
+    val ids = listOf(1, 2, 3, 4)
+    render(copy, gate, ok)
+    log("%s %s %s".format(gate, ok, ids))
     return if (ok) null else gate?.future
 }
 

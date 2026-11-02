@@ -45,5 +45,11 @@ fun load(gate: Gate?, ok: Boolean, items: List<Item>?): Future? {
         log("not ok")
     }
     items.forEach { log(it) }  // expect: function-reference
+    val copy = Item(gate, ok, null, 0)  // expect: named-function-parameters
+    items.forEach {
+        render(it, gate, ok) {  // expect: named-function-parameters
+            log("rendered")
+        }
+    }
     return null
 }

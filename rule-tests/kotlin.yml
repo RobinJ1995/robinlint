@@ -719,3 +719,219 @@ invalid:
     val users = rows
         .filter { it.isNotBlank() }
         .map { row -> User(row) }
+---
+id: named-function-parameters-kotlin
+valid:
+  - 'f(a, b, c)'
+  - 'f(a = 1, b = 2, c = 3, d = 4)'
+  - 'f()'
+  - 'f(a, b) { it }'
+  - 'User(name = name, email = email, age = age, admin = false)'
+  - 'repo.save(id = id, name = name, email = email, age = age)'
+  - 'repo?.save(id = id, name = name, email = email, age = age)'
+  - 'create<User>(id = id, name = name, email = email, age = age)'
+  - 'f(a = x == y, b = c, c = d, d = e)'
+  - |
+    f(
+        a = 1, // first
+        b = 2,
+        /* third */ c = 3,
+        d = 4,
+    )
+  - |
+    f(
+        a, // first
+        b,
+        /* third */ c,
+    )
+  - |
+    f(a = 1, b = 2, c = 3) {
+        it
+    }
+  - 'f(a, b, g(c = 1, d = 2, e = 3, f = 4))'
+  - 'f(g(a, b), h(c, d), i(e, f))'
+  - 'xs.map { (a, b, c, d) -> a }'
+  - 'val (a, b, c, d) = quad'
+  - |
+    fun f(a: Int, b: Int, c: Int, d: Int) = a
+  - 'fun f(a: Int, b: Int, c: Int, d: Int) = g(a = a, b = b, c = c, d = d)'
+  - 'val xs = xs[a, b, c, d]'
+  - 'val s = "${f(a = 1, b = 2, c = 3, d = 4)} ${g(a, b)}"'
+  # Varargs.
+  - 'listOf(1, 2, 3, 4)'
+  - 'val xs = mutableListOf(a, b, c, d, e)'
+  - 'setOf(a, b, c, d)'
+  - 'mapOf(1 to "a", 2 to "b", 3 to "c", 4 to "d")'
+  - 'arrayOf(a, b, c, d)'
+  - 'intArrayOf(1, 2, 3, 4)'
+  - 'uintArrayOf(1u, 2u, 3u, 4u)'
+  - 'kotlin.collections.listOf(1, 2, 3, 4)'
+  - 'maxOf(a, b, c, d)'
+  - 'sequenceOf(a, b, c, d)'
+  - 'flowOf(a, b, c, d)'
+  - 'merge(a, b, c, d)'
+  - 'combine(a, b, c) { x, y, z -> x + y + z }'
+  - 'awaitAll(a, b, c, d)'
+  - 'persistentListOf(a, b, c, d)'
+  - '"%s %s %s %s".format(a, b, c, d)'
+  - 'String.format("%s %s %s", a, b, c)'
+  - 'List.of(a, b, c, d)'
+  - 'EnumSet.of(A, B, C, D)'
+  - 'LocalDate.of(2024, 1, 2, 3)'
+  - 'Arrays.asList(a, b, c, d)'
+  - 'Objects.hash(a, b, c, d)'
+  - 'Paths.get("a", "b", "c", "d")'
+  - 'Path("a", "b", "c", "d")'
+  - 'logger.info("{} {} {}", a, b, c)'
+  - 'log.debug("{} {} {}", a, b, c)'
+  - 'Timber.d("%s %s %s", a, b, c)'
+  - 'Timber.tag("x").w("%s %s %s", a, b, c)'
+  - 'remember(a, b, c) { State() }'
+  - 'LaunchedEffect(a, b, c) { load() }'
+  - 'assertThat(xs).containsExactly(a, b, c, d)'
+  - 'xs shouldContainAll listOf(a, b, c, d)'
+  - 'xs.shouldContainExactly(a, b, c, d)'
+  - 'assertAll(a, b, c, d)'
+  - 'every { f() }.thenReturn(a, b, c, d)'
+  - 'clearMocks(a, b, c, d)'
+  - 'f(*xs)'
+  - 'f(a, b, c, *rest)'
+  - 'f(a, *xs, b, c)'
+  # Function types.
+  - |
+    class A(val onEvent: ((Int, Int, Int, Int) -> Unit)?) {
+        fun f() = onEvent?.invoke(1, 2, 3, 4)
+    }
+  - |
+    fun f(cb: (Int, Int, Int, Int) -> Unit) {
+        cb!!(1, 2, 3, 4)
+    }
+  - 'handlers[0](a, b, c, d)'
+  - 'factory()(a, b, c, d)'
+  - '(f)(a, b, c, d)'
+  - '{ a: Int, b: Int, c: Int, d: Int -> a }(1, 2, 3, 4)'
+  - 'cb.invoke(1, 2, 3, 4)'
+  - 'CompositionLocalProvider(LocalA provides a, LocalB provides b, LocalC provides c) { Content() }'
+  - 'Brush.linearGradient(0f to a, 0.5f to b, 1f to c, start = Offset.Zero)'
+  - 'assertThat(xs).startsWith(a, b, c, d)'
+  # Java has no named arguments.
+  - 'System.arraycopy(src, 0, dst, 0, size)'
+  - 'Math.fma(a, b, c, d)'
+  - 'val t = Thread(group, runnable, "worker", 0)'
+  - 'ProcessBuilder("tshark", "-i", "en0", "-V").start()'
+  - 'val c = android.graphics.Color.argb(0xe6, 0xff, 0xff, 0xff)'
+  - 'java.lang.System.arraycopy(src, 0, dst, 0, size)'
+  - |
+    import java.util.concurrent.ThreadPoolExecutor
+
+    val executor = ThreadPoolExecutor(1, 4, 60L, TimeUnit.SECONDS, queue)
+  - |
+    import java.util.Date as JavaDate
+
+    val d = JavaDate(1, 2, 3, 4)
+  - |
+    import org.joda.time.DateTime
+    import io.reactivex.Flowable
+
+    val date = DateTime(2020, 5, 4, 9, 9, 9)
+    val ticks = Flowable.interval(5, 1, TimeUnit.MINUTES, scheduler)
+  - 'val now = org.joda.time.DateTime(2020, 5, 4, 9, 9, 9)'
+  - |
+    package app
+
+    import android.app.PendingIntent
+    import javax.crypto.spec.SecretKeySpec
+
+    fun f() {
+        PendingIntent.getActivity(context, 0, intent, FLAG_IMMUTABLE)
+        val key = SecretKeySpec(bytes, 0, 16, "AES")
+    }
+  # Annotations and supertypes: often Java.
+  - |
+    @Ann(a, b, c, d)
+    class A
+  - |
+    class MyView(context: Context, attrs: AttributeSet?, style: Int, res: Int) :
+        View(context, attrs, style, res)
+  - |
+    class MyView : View {
+        constructor(context: Context, attrs: AttributeSet?, style: Int, res: Int) :
+            super(context, attrs, style, res)
+    }
+  - |
+    class A(val a: Int, val b: Int, val c: Int, val d: Int) {
+        constructor() : this(a = 1, b = 2, c = 3, d = 4)
+    }
+invalid:
+  - 'f(a, b, c, d)'
+  - 'f(1, 2, 3, 4, 5)'
+  - 'f(a, b, c) { it }'
+  - 'f(a = 1, b, c, d)'
+  - 'f(a, b, c, d = 4)'
+  - 'f(a = 1, b = 2, c = 3, d)'
+  - 'f(a, b = 2, c = 3) { it }'
+  - 'User(name, email, age, false)'
+  - 'repo.save(id, name, email, age)'
+  - 'repo?.save(id, name, email, age)'
+  - 'a.b.c.save(id, name, email, age)'
+  - 'repo!!.save(id, name, email, age)'
+  - 'create<User>(id, name, email, age)'
+  - 'super.save(id, name, email, age)'
+  - 'f(a, b, c, d) { it }'
+  - 'f(a == b, c, d, e)'
+  - 'f(-1, "", null, true)'
+  - |
+    f(
+        a, // first
+        b,
+        /* third */ c,
+        d,
+    )
+  - |
+    f(a, b, c) {
+        it
+    }
+  - 'f(a = g(b, c, d, e), b = 1, c = 2, d = 3)'
+  - 'f(a, b, g(c, d, e, f))'
+  - 'xs.map { g(it, 1, 2, 3) }'
+  - 'val s = "${f(a, b, c, d)}"'
+  - 'Modifier.padding(16.dp, 8.dp, 16.dp, 8.dp)'
+  - 'Color(1f, 0f, 0f, 1f)'
+  - 'listOfThings(a, b, c, d)'
+  - 'mylistOf(a, b, c, d)'
+  - 'logInfo(a, b, c, d)'
+  - 'Timberland.d(a, b, c, d)'
+  - |
+    class A(val a: Int, val b: Int, val c: Int, val d: Int) {
+        constructor() : this(1, 2, 3, 4)
+    }
+  - |
+    import com.example.ThreadPoolExecutor
+
+    val executor = ThreadPoolExecutor(1, 4, 60L, TimeUnit.SECONDS)
+  - |
+    import java.util.concurrent.ThreadPoolExecutor
+
+    val executor = Executor(1, 4, 60L, TimeUnit.SECONDS)
+  - |
+    import java.util.Date as JavaDate
+
+    val d = Date(1, 2, 3, 4)
+  - |
+    import java.util.Date
+    import com.example.Date as AppDate
+
+    val d = AppDate(1, 2, 3, 4)
+  - 'Systems.arraycopy(src, 0, dst, 0, size)'
+  - 'javaUtils.copy(src, 0, dst, 0, size)'
+  - |
+    import org.jodax.DateTime
+    import organisation.joda.Thing
+
+    val date = DateTime(2020, 5, 4, 9, 9, 9)
+    val thing = Thing(1, 2, 3, 4)
+  - 'listOfThingsOf(a, b, c, d)'
+  - |
+    fun f(cb: (Int) -> Unit) {
+        g(1, 2, 3, 4)
+    }

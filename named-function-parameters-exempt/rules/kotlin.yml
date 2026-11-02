@@ -1,0 +1,77 @@
+# Vararg and function-typed declarations, whose calls can't take named arguments.
+id: unnameable-declaration-kotlin
+language: kotlin
+severity: info
+utils:
+  vararg-parameters:
+    any:
+      - kind: function_value_parameters
+        has:
+          kind: parameter_modifiers
+          has:
+            kind: parameter_modifier
+            regex: ^vararg$
+      - kind: primary_constructor
+        has:
+          kind: class_parameter
+          has:
+            kind: modifiers
+            has:
+              kind: parameter_modifier
+              regex: ^vararg$
+  function-type:
+    any:
+      - kind: function_type
+      - kind: nullable_type
+        has:
+          stopBy: end
+          kind: function_type
+      - kind: parenthesized_type
+        has:
+          stopBy: end
+          kind: function_type
+rule:
+  any:
+    - kind: function_declaration
+      all:
+        - has:
+            kind: simple_identifier
+            pattern: $NAME
+        - has:
+            matches: vararg-parameters
+    - kind: class_declaration
+      all:
+        - has:
+            kind: type_identifier
+            pattern: $NAME
+        - any:
+            - has:
+                matches: vararg-parameters
+            - has:
+                kind: class_body
+                has:
+                  kind: secondary_constructor
+                  has:
+                    matches: vararg-parameters
+    - any:
+        - kind: parameter
+        - kind: class_parameter
+        - kind: variable_declaration
+      all:
+        - has:
+            kind: simple_identifier
+            pattern: $NAME
+        - has:
+            matches: function-type
+    - kind: property_declaration
+      all:
+        - has:
+            kind: variable_declaration
+            has:
+              kind: simple_identifier
+              pattern: $NAME
+        - has:
+            any:
+              - kind: lambda_literal
+              - kind: anonymous_function
+              - kind: callable_reference

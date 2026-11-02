@@ -18,6 +18,7 @@ const EDITORCONFIG_CHECKER_VERSION = 'v4.0.2';
 const EDITORCONFIG_CHECKER_DIR = Path.join(ACTION_DIR, 'node_modules', 'editorconfig-checker', 'bin', EDITORCONFIG_CHECKER_VERSION);
 const EDITORCONFIG_CHECKER_CONFIG = Path.join(ACTION_DIR, 'editorconfig-checker.json');
 const EDITORCONFIG_EXEMPT_CONFIG = Path.join(ACTION_DIR, 'editorconfig-exempt', 'sgconfig.yml');
+const NAMED_FUNCTION_PARAMETERS_EXEMPT_CONFIG = Path.join(ACTION_DIR, 'named-function-parameters-exempt', 'sgconfig.yml');
 const INDENTATION_ERROR = /^wrong (indentation type|indent style|amount of left-padding)/;
 // <rule>-<language>, e.g. braces-javascript
 const RULE_ID_REGEX = /^(?<rule>.+)-[a-z]+$/;
@@ -81,9 +82,18 @@ const runAstGrep = (root, files) => {
         throw new Error(`${AST_GREP} exited with status ${astGrepProcess.status}:\n${astGrepProcess.stderr}`);
     }
 
-    return astGrepProcess.stdout.split('\n')
+    const matches = astGrepProcess.stdout.split('\n')
         .filter(x => !!x)
-        .map(JSON.parse)
+        .map(JSON.parse);
+    const unnameable = matches.some(match => match.ruleId === 'named-function-parameters-kotlin')
+        ? unnameableKotlinNames(root, files)
+        : new Set();
+
+    return matches
+        .filter(match => {
+            return !(match.ruleId === 'named-function-parameters-kotlin'
+                && unnameable.has(match.metaVariables.single.NAME?.text));
+        })
         .map(match => {
             // ast-grep counts lines and columns from 0.
             const line = match.range.start.line + 1;
@@ -99,6 +109,29 @@ const runAstGrep = (root, files) => {
                 isError: match.severity === 'error'
             };
         });
+};
+
+// Names of vararg and function-typed declarations, whose calls can't take named arguments.
+const unnameableKotlinNames = (root, files) => {
+    const astGrepProcess = spawnSync(
+        AST_GREP,
+        ['scan', '--config', NAMED_FUNCTION_PARAMETERS_EXEMPT_CONFIG, '--json=stream', ...files],
+        {
+            cwd: root,
+            encoding: 'utf8',
+            maxBuffer: 1024 ** 3
+        }
+    );
+
+    if (astGrepProcess.error) {
+        throw astGrepProcess.error;
+    } else if (astGrepProcess.status !== 0) {
+        throw new Error(`${AST_GREP} exited with status ${astGrepProcess.status}:\n${astGrepProcess.stderr}`);
+    }
+
+    return new Set(astGrepProcess.stdout.split('\n')
+        .filter(x => !!x)
+        .map(line => JSON.parse(line).metaVariables.single.NAME.text));
 };
 
 const linesInsideCommentsAndStrings = (files, root) => {
